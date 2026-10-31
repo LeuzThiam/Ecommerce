@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- les <PackageVersion> viendront ici au fur et à mesure qu'on ajoute des paquets -->
+  </ItemGroup>
+</Project>

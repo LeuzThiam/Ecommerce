@@ -1,0 +1,20 @@
+## .NET
+bin/
+obj/
+*.user
+
+## Visual Studio
+.vs/
+*.suo
+
+## Rider / VS Code
+.idea/
+.vscode/
+
+## Logs
+*.log
+
+## Environment
+.env
+.env.local
+.env.*.local
