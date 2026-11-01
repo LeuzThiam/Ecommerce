@@ -6,3 +6,6 @@ indent_size = 4
 file_scoped_namespace_style = file_scoped
 csharp_style_namespace_declarations = file_scoped:warning
 dotnet_diagnostic.CA1812.severity = none
+[**/Migrations/*.cs]
+csharp_style_namespace_declarations = block_scoped:silent
+dotnet_diagnostic.IDE0161.severity = none
