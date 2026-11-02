@@ -17,9 +17,11 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Stock).IsRequired();
         builder.Property(p => p.CategoryId).IsRequired();
 
-        // Jeton de concurrence optimiste : une "shadow property" (elle vit uniquement dans la
-        // base et le modèle EF Core, jamais dans la classe Product) — ça évite de polluer le
-        // Domain avec un détail purement technique de persistance.
-        builder.Property<byte[]>("RowVersion").IsRowVersion();
+        // Jeton de concurrence optimiste géré par l'application (pas par IsRowVersion(), qui
+        // dépend d'une fonctionnalité propre à SQL Server et ne fonctionne pas sur SQLite).
+        // "Version" est une "shadow property" : elle vit uniquement dans la base et le modèle
+        // EF Core, jamais dans la classe Product — ça évite de polluer le Domain avec un détail
+        // purement technique de persistance. Incrémentée dans ApplicationDbContext.SaveChanges.
+        builder.Property<int>("Version").IsConcurrencyToken();
     }
 }

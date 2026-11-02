@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Catalog.Domain.Common;
 
@@ -70,9 +71,19 @@ public sealed class Product
 
     private static string GenerateSlug(string name)
     {
+        // Normalize en FormD sépare chaque lettre accentuée en "lettre de base" + "accent"
+        // (ex: 'é' devient 'e' + un accent combinant) — on garde la lettre de base et on
+        // ignore l'accent, pour obtenir un slug sans caractères accentués (sûr dans une URL).
+        var decomposed = name.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+
         var builder = new StringBuilder();
-        foreach (var c in name.Trim().ToLowerInvariant())
+        foreach (var c in decomposed)
         {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
             if (char.IsLetterOrDigit(c))
             {
                 builder.Append(c);

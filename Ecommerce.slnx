@@ -15,6 +15,10 @@
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Services/" />
+  <Folder Name="/tests/Services/Catalog/">
+    <Project Path="tests/Services/Catalog/Catalog.Api.Tests/Catalog.Api.Tests.csproj" />
+    <Project Path="tests/Services/Catalog/Catalog.Domain.Tests/Catalog.Domain.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Services/Identity/">
     <Project Path="tests/Services/Identity/Identity.Api.Tests/Identity.Api.Tests.csproj" />
     <Project Path="tests/Services/Identity/Identity.Domain.Tests/Identity.Domain.Tests.csproj" />
