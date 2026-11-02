@@ -33,8 +33,11 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// En environnement "Testing", la factory de test crée le schéma avec EnsureCreated() sur
+// SQLite — appliquer les migrations (générées pour SQL Server) échouerait inutilement.
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
 }
 
@@ -90,3 +93,5 @@ app.MapGet("/health/live", () => Results.Ok());
 app.Run();
 
 record RegisterRequest(string Email, string Password, string DisplayName);
+
+public partial class Program;
