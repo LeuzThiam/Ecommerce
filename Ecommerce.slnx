@@ -2,12 +2,15 @@
   <Folder Name="/src/" />
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Identity/">
+    <Project Path="src/Services/Identity/Identity.Api/Identity.Api.csproj" />
     <Project Path="src/Services/Identity/Identity.Application/Identity.Application.csproj" />
     <Project Path="src/Services/Identity/Identity.Domain/Identity.Domain.csproj" />
+    <Project Path="src/Services/Identity/Identity.Infrastructure/Identity.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Services/" />
   <Folder Name="/tests/Services/Identity/">
+    <Project Path="tests/Services/Identity/Identity.Api.Tests/Identity.Api.Tests.csproj" />
     <Project Path="tests/Services/Identity/Identity.Domain.Tests/Identity.Domain.Tests.csproj" />
   </Folder>
 </Solution>
