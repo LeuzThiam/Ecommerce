@@ -1,6 +1,12 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Catalog/">
+    <Project Path="src/Services/Catalog/Catalog.Api/Catalog.Api.csproj" />
+    <Project Path="src/Services/Catalog/Catalog.Application/Catalog.Application.csproj" />
+    <Project Path="src/Services/Catalog/Catalog.Domain/Catalog.Domain.csproj" />
+    <Project Path="src/Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Identity/">
     <Project Path="src/Services/Identity/Identity.Api/Identity.Api.csproj" />
     <Project Path="src/Services/Identity/Identity.Application/Identity.Application.csproj" />
@@ -9,6 +15,10 @@
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Services/" />
+  <Folder Name="/tests/Services/Catalog/">
+    <Project Path="tests/Services/Catalog/Catalog.Api.Tests/Catalog.Api.Tests.csproj" />
+    <Project Path="tests/Services/Catalog/Catalog.Domain.Tests/Catalog.Domain.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Services/Identity/">
     <Project Path="tests/Services/Identity/Identity.Api.Tests/Identity.Api.Tests.csproj" />
     <Project Path="tests/Services/Identity/Identity.Domain.Tests/Identity.Domain.Tests.csproj" />
