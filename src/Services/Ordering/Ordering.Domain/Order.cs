@@ -38,4 +38,24 @@ public sealed class Order
         order._items.AddRange(items);
         return order;
     }
+
+    public void MarkAsPaid()
+    {
+        if (Status != OrderStatus.PendingPayment)
+        {
+            throw new DomainException("Seule une commande en attente de paiement peut être marquée payée.");
+        }
+
+        Status = OrderStatus.Paid;
+    }
+
+    public void Cancel()
+    {
+        if (Status != OrderStatus.PendingPayment)
+        {
+            throw new DomainException("Seule une commande en attente de paiement peut être annulée.");
+        }
+
+        Status = OrderStatus.Cancelled;
+    }
 }

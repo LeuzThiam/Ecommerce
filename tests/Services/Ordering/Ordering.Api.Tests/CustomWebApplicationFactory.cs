@@ -14,6 +14,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     public FakeProductCatalogClient CatalogClient { get; } = new();
     public FakeStockReservationClient StockClient { get; } = new();
+    public FakePaymentGateway PaymentGateway { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -44,6 +45,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IStockReservationClient>();
             services.AddSingleton<IStockReservationClient>(StockClient);
+
+            services.RemoveAll<IPaymentGateway>();
+            services.AddSingleton<IPaymentGateway>(PaymentGateway);
 
             using var scope = services.BuildServiceProvider().CreateScope();
             scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.EnsureCreated();

@@ -7,6 +7,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

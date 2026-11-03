@@ -111,6 +111,54 @@ namespace Ordering.Infrastructure.Persistence.Migrations
                     b.ToTable("OrderItems", (string)null);
                 });
 
+            modelBuilder.Entity("Ordering.Domain.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProviderPaymentId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProviderPaymentId")
+                        .IsUnique()
+                        .HasFilter("[ProviderPaymentId] IS NOT NULL");
+
+                    b.ToTable("Payments", (string)null);
+                });
+
+            modelBuilder.Entity("Ordering.Domain.ProcessedWebhookEvent", b =>
+                {
+                    b.Property<string>("EventId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ProcessedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("ProcessedWebhookEvents", (string)null);
+                });
+
             modelBuilder.Entity("Ordering.Domain.CartItem", b =>
                 {
                     b.HasOne("Ordering.Domain.Cart", null)
