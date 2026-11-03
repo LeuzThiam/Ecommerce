@@ -13,6 +13,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     public FakeProductCatalogClient CatalogClient { get; } = new();
+    public FakeStockReservationClient StockClient { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -40,6 +41,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // Remplace le vrai client HTTP par notre faux, configurable depuis les tests.
             services.RemoveAll<IProductCatalogClient>();
             services.AddSingleton<IProductCatalogClient>(CatalogClient);
+
+            services.RemoveAll<IStockReservationClient>();
+            services.AddSingleton<IStockReservationClient>(StockClient);
 
             using var scope = services.BuildServiceProvider().CreateScope();
             scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.EnsureCreated();

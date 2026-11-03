@@ -21,8 +21,15 @@ builder.Services.AddHttpClient<IProductCatalogClient, HttpProductCatalogClient>(
     client.BaseAddress = new Uri(catalogApiBaseUrl);
 });
 
+builder.Services.AddHttpClient<IStockReservationClient, HttpStockReservationClient>(client =>
+{
+    client.BaseAddress = new Uri(catalogApiBaseUrl);
+});
+
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, CheckoutService>();
 
 var app = builder.Build();
 
@@ -90,6 +97,22 @@ app.MapDelete("/api/ordering/cart/{customerId}/items/{productId}", async (
     try
     {
         return Results.Ok(await cartService.RemoveItemAsync(customerId, productId, cancellationToken));
+    }
+    catch (DomainException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+});
+
+app.MapPost("/api/ordering/checkout/{customerId}", async (
+    Guid customerId,
+    IOrderService orderService,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        var order = await orderService.CheckoutAsync(customerId, cancellationToken);
+        return Results.Created($"/api/ordering/orders/{order.Id}", order);
     }
     catch (DomainException ex)
     {
