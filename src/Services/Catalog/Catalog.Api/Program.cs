@@ -61,6 +61,17 @@ app.MapGet("/api/catalog/products/{slug}", async (
     return product is null ? Results.NotFound() : Results.Ok(product);
 });
 
+// Utilisé par les autres services (ex: Ordering.Api) pour récupérer le prix/stock actuel
+// d'un produit par son identifiant, plutôt que par son slug (destiné aux clients web).
+app.MapGet("/api/catalog/products/by-id/{id}", async (
+    Guid id,
+    IProductCatalog catalog,
+    CancellationToken cancellationToken) =>
+{
+    var product = await catalog.GetByIdAsync(id, cancellationToken);
+    return product is null ? Results.NotFound() : Results.Ok(product);
+});
+
 app.MapGet("/api/catalog/categories", async (
     ICategoryAdminService categories,
     CancellationToken cancellationToken) =>
