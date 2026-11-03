@@ -125,6 +125,24 @@ app.MapPost("/api/ordering/checkout/{customerId}", async (
     }
 });
 
+app.MapGet("/api/ordering/orders/{orderId}", async (
+    Guid orderId,
+    IOrderRepository orderRepository,
+    CancellationToken cancellationToken) =>
+{
+    var order = await orderRepository.GetByIdAsync(orderId, cancellationToken);
+    if (order is null)
+    {
+        return Results.NotFound();
+    }
+
+    var items = order.Items
+        .Select(i => new OrderItemDto(i.ProductId, i.ProductName, i.UnitPrice, i.Quantity, i.Subtotal))
+        .ToList();
+
+    return Results.Ok(new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), items, order.Total));
+});
+
 app.MapPost("/api/ordering/orders/{orderId}/payment-intent", async (
     Guid orderId,
     IPaymentService paymentService,
