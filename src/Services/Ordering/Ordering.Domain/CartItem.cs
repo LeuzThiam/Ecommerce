@@ -8,15 +8,17 @@ public sealed class CartItem
     public string ProductName { get; private set; }
     public decimal UnitPrice { get; private set; }
     public int Quantity { get; private set; }
+    public DateTime AddedAtUtc { get; }
 
     public decimal Subtotal => UnitPrice * Quantity;
 
-    private CartItem(Guid productId, string productName, decimal unitPrice, int quantity)
+    private CartItem(Guid productId, string productName, decimal unitPrice, int quantity, DateTime addedAtUtc)
     {
         ProductId = productId;
         ProductName = productName;
         UnitPrice = unitPrice;
         Quantity = quantity;
+        AddedAtUtc = addedAtUtc;
     }
 
     public static CartItem Create(Guid productId, string productName, decimal unitPrice, int quantity)
@@ -36,7 +38,7 @@ public sealed class CartItem
             throw new DomainException("La quantité doit être positive.");
         }
 
-        return new CartItem(productId, productName.Trim(), unitPrice, quantity);
+        return new CartItem(productId, productName.Trim(), unitPrice, quantity, DateTime.UtcNow);
     }
 
     internal void IncreaseQuantity(int quantity) => Quantity += quantity;

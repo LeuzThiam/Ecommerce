@@ -18,6 +18,7 @@ public sealed class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.Property(i => i.ProductName).IsRequired().HasMaxLength(200);
         builder.Property(i => i.UnitPrice).HasPrecision(18, 2);
         builder.Property(i => i.Quantity).IsRequired();
+        builder.Property(i => i.AddedAtUtc).IsRequired();
 
         // Subtotal est calculé (UnitPrice * Quantity), pas une colonne.
         builder.Ignore(i => i.Subtotal);

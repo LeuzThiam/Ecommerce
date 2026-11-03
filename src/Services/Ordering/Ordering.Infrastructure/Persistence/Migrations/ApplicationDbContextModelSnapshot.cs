@@ -47,6 +47,9 @@ namespace Ordering.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime>("AddedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(200)
