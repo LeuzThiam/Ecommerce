@@ -57,4 +57,13 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
             .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId))
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    public async Task<ProductDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await dbContext.Products
+            .AsNoTracking()
+            .Where(p => p.Id == id)
+            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 }

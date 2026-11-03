@@ -6,4 +6,5 @@ public interface IProductCatalog
 {
     Task<PagedResult<ProductDto>> SearchAsync(ProductSearch search, CancellationToken cancellationToken);
     Task<ProductDto?> GetBySlugAsync(string slug, CancellationToken cancellationToken);
+    Task<ProductDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 }

@@ -13,6 +13,12 @@
     <Project Path="src/Services/Identity/Identity.Domain/Identity.Domain.csproj" />
     <Project Path="src/Services/Identity/Identity.Infrastructure/Identity.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Ordering/">
+    <Project Path="src/Services/Ordering/Ordering.Api/Ordering.Api.csproj" />
+    <Project Path="src/Services/Ordering/Ordering.Application/Ordering.Application.csproj" />
+    <Project Path="src/Services/Ordering/Ordering.Domain/Ordering.Domain.csproj" />
+    <Project Path="src/Services/Ordering/Ordering.Infrastructure/Ordering.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Services/" />
   <Folder Name="/tests/Services/Catalog/">
@@ -22,5 +28,9 @@
   <Folder Name="/tests/Services/Identity/">
     <Project Path="tests/Services/Identity/Identity.Api.Tests/Identity.Api.Tests.csproj" />
     <Project Path="tests/Services/Identity/Identity.Domain.Tests/Identity.Domain.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Services/Ordering/">
+    <Project Path="tests/Services/Ordering/Ordering.Api.Tests/Ordering.Api.Tests.csproj" />
+    <Project Path="tests/Services/Ordering/Ordering.Domain.Tests/Ordering.Domain.Tests.csproj" />
   </Folder>
 </Solution>
