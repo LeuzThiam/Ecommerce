@@ -31,6 +31,11 @@ builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, CheckoutService>();
 
+builder.Services.AddOptions<StripeOptions>().Bind(builder.Configuration.GetSection(StripeOptions.SectionName));
+builder.Services.AddScoped<IPaymentGateway, StripePaymentGateway>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsEnvironment("Testing"))
@@ -118,6 +123,37 @@ app.MapPost("/api/ordering/checkout/{customerId}", async (
     {
         return Results.BadRequest(new { message = ex.Message });
     }
+});
+
+app.MapPost("/api/ordering/orders/{orderId}/payment-intent", async (
+    Guid orderId,
+    IPaymentService paymentService,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        return Results.Ok(await paymentService.CreatePaymentIntentAsync(orderId, cancellationToken));
+    }
+    catch (DomainException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+});
+
+// Stripe envoie ce webhook pour confirmer (ou refuser) un paiement. On lit le corps brut de la
+// requête (pas de liaison JSON automatique) car la vérification de signature a besoin du texte
+// exact, octet pour octet, tel qu'envoyé par Stripe.
+app.MapPost("/api/ordering/payments/webhook", async (
+    HttpRequest request,
+    IPaymentService paymentService,
+    CancellationToken cancellationToken) =>
+{
+    using var reader = new StreamReader(request.Body);
+    var payload = await reader.ReadToEndAsync(cancellationToken);
+    var signature = request.Headers["Stripe-Signature"].ToString();
+
+    await paymentService.HandleWebhookAsync(payload, signature, cancellationToken);
+    return Results.Ok();
 });
 
 app.MapGet("/health/live", () => Results.Ok());
