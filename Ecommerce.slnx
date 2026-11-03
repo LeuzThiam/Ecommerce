@@ -29,4 +29,8 @@
     <Project Path="tests/Services/Identity/Identity.Api.Tests/Identity.Api.Tests.csproj" />
     <Project Path="tests/Services/Identity/Identity.Domain.Tests/Identity.Domain.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/Services/Ordering/">
+    <Project Path="tests/Services/Ordering/Ordering.Api.Tests/Ordering.Api.Tests.csproj" />
+    <Project Path="tests/Services/Ordering/Ordering.Domain.Tests/Ordering.Domain.Tests.csproj" />
+  </Folder>
 </Solution>
