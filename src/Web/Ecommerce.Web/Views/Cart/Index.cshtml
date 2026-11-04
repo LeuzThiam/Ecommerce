@@ -1,0 +1,59 @@
+@model CartDto
+@{
+    ViewData["Title"] = "Panier";
+}
+
+<h1>Votre panier</h1>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (Model.Items.Count == 0)
+{
+    <p>Votre panier est vide. <a asp-controller="Catalog" asp-action="Index">Parcourir le catalogue</a></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Produit</th>
+                <th>Prix unitaire</th>
+                <th>Quantité</th>
+                <th>Sous-total</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@item.ProductName</td>
+                    <td>@item.UnitPrice.ToString("C")</td>
+                    <td>
+                        <form asp-controller="Cart" asp-action="UpdateQuantity" method="post" class="d-flex gap-2">
+                            <input type="hidden" name="productId" value="@item.ProductId" />
+                            <input type="number" name="quantity" value="@item.Quantity" min="1" class="form-control form-control-sm" style="width: 5rem;" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Mettre à jour</button>
+                        </form>
+                    </td>
+                    <td>@item.Subtotal.ToString("C")</td>
+                    <td>
+                        <form asp-controller="Cart" asp-action="Remove" method="post">
+                            <input type="hidden" name="productId" value="@item.ProductId" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Retirer</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <p class="fs-4">Total : @Model.Total.ToString("C")</p>
+
+    <form asp-controller="Checkout" asp-action="Create" method="post">
+        <button type="submit" class="btn btn-success">Passer la commande</button>
+    </form>
+}
