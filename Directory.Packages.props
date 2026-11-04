@@ -18,5 +18,6 @@
 		<PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
 		<PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
 		<PackageVersion Include="Ocelot" Version="25.0.2" />
+		<PackageVersion Include="MailKit" Version="4.18.2" />
 	</ItemGroup>
 </Project>
