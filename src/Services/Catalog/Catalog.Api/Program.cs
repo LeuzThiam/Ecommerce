@@ -1,9 +1,12 @@
+using System.Text;
 using Catalog.Application;
 using Catalog.Application.Common;
 using Catalog.Domain.Common;
 using Catalog.Infrastructure;
 using Catalog.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +22,31 @@ builder.Services.AddScoped<ICategoryAdminService, CategoryAdminService>();
 builder.Services.AddScoped<IProductAdminService, ProductAdminService>();
 builder.Services.AddScoped<IStockService, StockService>();
 
+// Même clé de signature que Identity.Api — c'est ce qui permet à ce service de valider
+// l'identité d'un appelant sans dépendre directement d'Identity.Api à l'exécution.
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
+    ?? throw new InvalidOperationException("Jwt:SecretKey est requis — doit être identique sur Identity.Api, Catalog.Api et Ordering.Api.");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Ecommerce";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Ecommerce";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+            ValidateLifetime = true,
+        };
+    });
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("AdminOnly", policy => policy.RequireRole("Administrator"));
+
 var app = builder.Build();
 
 if (!app.Environment.IsEnvironment("Testing"))
@@ -31,6 +59,9 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/api/catalog/products", async (
     IProductCatalog catalog,
@@ -79,8 +110,6 @@ app.MapGet("/api/catalog/categories", async (
     return Results.Ok(await categories.ListAsync(cancellationToken));
 });
 
-// TODO (Issue #10) : protéger avec [Authorize(Roles = "Administrator")] une fois le schéma
-// JWT inter-services résolu — voir la note de l'Issue #3.
 app.MapPost("/api/catalog/categories", async (
     CreateCategoryRequest request,
     ICategoryAdminService categories,
@@ -95,9 +124,9 @@ app.MapPost("/api/catalog/categories", async (
     {
         return Results.BadRequest(new { message = ex.Message });
     }
-});
+})
+.RequireAuthorization("AdminOnly");
 
-// TODO (Issue #10) : protéger avec [Authorize(Roles = "Administrator")].
 app.MapPost("/api/catalog/products", async (
     CreateProductRequest request,
     IProductAdminService products,
@@ -112,7 +141,8 @@ app.MapPost("/api/catalog/products", async (
     {
         return Results.BadRequest(new { message = ex.Message });
     }
-});
+})
+.RequireAuthorization("AdminOnly");
 
 // Endpoints internes, appelés par Ordering.Api au moment du checkout — pas destinés aux clients.
 app.MapPost("/api/catalog/stock/reserve", async (
