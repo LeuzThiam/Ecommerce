@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Identity.Application;
 using Identity.Domain.Common;
@@ -41,7 +42,17 @@ var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Ecommerce";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Ecommerce";
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+// AddIdentity() (ci-dessus) configure déjà un schéma d'authentification par défaut (cookie,
+// "Identity.Application") pour DefaultAuthenticateScheme/DefaultChallengeScheme. Sans ces trois
+// lignes explicites, ce schéma cookie reste prioritaire malgré l'appel suivant — un
+// .RequireAuthorization() sur Identity.Api lui-même échouerait silencieusement (redirection vers
+// une page de login inexistante) même avec un Bearer token valide.
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -132,6 +143,10 @@ app.MapPost("/api/identity/register", async (
 
     var applicationUser = new ApplicationUser
     {
+        // Le JWT émis au login porte l'Id d'ApplicationUser (claim "sub") - il doit être
+        // identique à celui du User du domaine, sinon aucun endpoint authentifié (profil,
+        // adresses) ne peut retrouver le bon agrégat à partir du token.
+        Id = domainUser.Id,
         UserName = domainUser.Email.Value,
         Email = domainUser.Email.Value
     };
@@ -279,13 +294,195 @@ app.MapPost("/api/identity/reset-password", async (
 })
 .WithName("ResetPassword");
 
+app.MapGet("/api/identity/profile", async (
+    ClaimsPrincipal principal,
+    IUserRepository userRepository,
+    CancellationToken cancellationToken) =>
+{
+    var domainUser = await userRepository.GetByIdAsync(GetUserId(principal), cancellationToken);
+    if (domainUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(new UserDto(domainUser.Id, domainUser.Email.Value, domainUser.DisplayName, domainUser.CreatedAtUtc));
+})
+.RequireAuthorization()
+.WithName("GetProfile");
+
+app.MapPut("/api/identity/profile", async (
+    UpdateProfileRequest request,
+    ClaimsPrincipal principal,
+    IUserRepository userRepository,
+    CancellationToken cancellationToken) =>
+{
+    var domainUser = await userRepository.GetByIdAsync(GetUserId(principal), cancellationToken);
+    if (domainUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    try
+    {
+        domainUser.UpdateDisplayName(request.DisplayName);
+    }
+    catch (DomainException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+
+    await userRepository.UpdateAsync(domainUser, cancellationToken);
+
+    return Results.Ok(new UserDto(domainUser.Id, domainUser.Email.Value, domainUser.DisplayName, domainUser.CreatedAtUtc));
+})
+.RequireAuthorization()
+.WithName("UpdateProfile");
+
+app.MapGet("/api/identity/addresses", async (
+    ClaimsPrincipal principal,
+    IUserRepository userRepository,
+    CancellationToken cancellationToken) =>
+{
+    var domainUser = await userRepository.GetByIdAsync(GetUserId(principal), cancellationToken);
+    if (domainUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(domainUser.Addresses.Select(ToAddressDto));
+})
+.RequireAuthorization()
+.WithName("GetAddresses");
+
+app.MapPost("/api/identity/addresses", async (
+    AddressRequest request,
+    ClaimsPrincipal principal,
+    IUserRepository userRepository,
+    CancellationToken cancellationToken) =>
+{
+    var domainUser = await userRepository.GetByIdAsync(GetUserId(principal), cancellationToken);
+    if (domainUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    Address address;
+    try
+    {
+        address = domainUser.AddAddress(request.Line1, request.Line2, request.City, request.PostalCode, request.Country);
+    }
+    catch (DomainException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+
+    await userRepository.UpdateAsync(domainUser, cancellationToken);
+
+    return Results.Created($"/api/identity/addresses/{address.Id}", ToAddressDto(address));
+})
+.RequireAuthorization()
+.WithName("AddAddress");
+
+app.MapPut("/api/identity/addresses/{addressId:guid}", async (
+    Guid addressId,
+    AddressRequest request,
+    ClaimsPrincipal principal,
+    IUserRepository userRepository,
+    CancellationToken cancellationToken) =>
+{
+    var domainUser = await userRepository.GetByIdAsync(GetUserId(principal), cancellationToken);
+    if (domainUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    try
+    {
+        domainUser.UpdateAddress(addressId, request.Line1, request.Line2, request.City, request.PostalCode, request.Country);
+    }
+    catch (DomainException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+
+    await userRepository.UpdateAsync(domainUser, cancellationToken);
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("UpdateAddress");
+
+app.MapDelete("/api/identity/addresses/{addressId:guid}", async (
+    Guid addressId,
+    ClaimsPrincipal principal,
+    IUserRepository userRepository,
+    CancellationToken cancellationToken) =>
+{
+    var domainUser = await userRepository.GetByIdAsync(GetUserId(principal), cancellationToken);
+    if (domainUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    try
+    {
+        domainUser.RemoveAddress(addressId);
+    }
+    catch (DomainException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+
+    await userRepository.UpdateAsync(domainUser, cancellationToken);
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("RemoveAddress");
+
+app.MapPost("/api/identity/addresses/{addressId:guid}/default", async (
+    Guid addressId,
+    ClaimsPrincipal principal,
+    IUserRepository userRepository,
+    CancellationToken cancellationToken) =>
+{
+    var domainUser = await userRepository.GetByIdAsync(GetUserId(principal), cancellationToken);
+    if (domainUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    try
+    {
+        domainUser.SetDefaultAddress(addressId);
+    }
+    catch (DomainException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+
+    await userRepository.UpdateAsync(domainUser, cancellationToken);
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("SetDefaultAddress");
+
 app.MapGet("/health/live", () => Results.Ok());
 
 app.Run();
+
+static Guid GetUserId(ClaimsPrincipal principal) =>
+    Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+static AddressDto ToAddressDto(Address address) =>
+    new(address.Id, address.Line1, address.Line2, address.City, address.PostalCode, address.Country, address.IsDefault);
 
 record RegisterRequest(string Email, string Password, string DisplayName);
 record LoginRequest(string Email, string Password);
 record ForgotPasswordRequest(string Email);
 record ResetPasswordRequest(string Email, string Token, string NewPassword);
+record UpdateProfileRequest(string DisplayName);
+record AddressRequest(string Line1, string? Line2, string City, string PostalCode, string Country);
 
 public partial class Program;
