@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Ordering.Application;
 
@@ -47,6 +48,7 @@ public class PaymentTests(CustomWebApplicationFactory factory) : IClassFixture<C
         factory.CatalogClient.AddProduct(new ProductSnapshot(productId, "Produit", 10m, 3));
         factory.StockClient.SetStock(productId, 3);
         var customerId = Guid.NewGuid();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.GenerateToken(customerId));
         await _client.PostAsJsonAsync($"/api/ordering/cart/{customerId}/items", new { productId, quantity = 2 });
         var checkoutResponse = await _client.PostAsync($"/api/ordering/checkout/{customerId}", null);
         var order = await checkoutResponse.Content.ReadFromJsonAsync<OrderDto>();
@@ -86,6 +88,7 @@ public class PaymentTests(CustomWebApplicationFactory factory) : IClassFixture<C
         factory.CatalogClient.AddProduct(new ProductSnapshot(productId, "Produit", 10m, 5));
         factory.StockClient.SetStock(productId, 5);
         var customerId = Guid.NewGuid();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.GenerateToken(customerId));
         await _client.PostAsJsonAsync($"/api/ordering/cart/{customerId}/items", new { productId, quantity = 1 });
 
         var checkoutResponse = await _client.PostAsync($"/api/ordering/checkout/{customerId}", null);
