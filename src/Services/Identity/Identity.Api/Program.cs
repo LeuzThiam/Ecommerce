@@ -3,9 +3,11 @@ using Identity.Application;
 using Identity.Domain.Common;
 using Identity.Domain.Identity;
 using Identity.Infrastructure;
+using Identity.Infrastructure.Emailing;
 using Identity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -60,6 +62,21 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
+// En Production, les emails partent réellement par SMTP (config requise au moment de l'envoi,
+// voir SmtpEmailSender). Partout ailleurs (Development, Testing), on se contente de les logguer
+// pour pouvoir tester les flux de confirmation/reset sans serveur SMTP.
+if (builder.Environment.IsProduction())
+{
+    builder.Services.AddOptions<SmtpOptions>().Bind(builder.Configuration.GetSection(SmtpOptions.SectionName));
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+}
+else
+{
+    builder.Services.AddSingleton<IEmailSender, DevelopmentEmailSender>();
+}
+
+var publicBaseUrl = builder.Configuration["PublicBaseUrl"] ?? "http://localhost:5000";
+
 var app = builder.Build();
 
 // En environnement "Testing", la factory de test crée le schéma avec EnsureCreated() sur
@@ -95,6 +112,7 @@ app.MapPost("/api/identity/register", async (
     RegisterRequest request,
     UserManager<ApplicationUser> userManager,
     IUserRepository userRepository,
+    IEmailSender emailSender,
     CancellationToken cancellationToken) =>
 {
     if (await userRepository.ExistsByEmailAsync(request.Email, cancellationToken))
@@ -130,6 +148,15 @@ app.MapPost("/api/identity/register", async (
 
     await userRepository.AddAsync(domainUser, cancellationToken);
 
+    var confirmationToken = await userManager.GenerateEmailConfirmationTokenAsync(applicationUser);
+    var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(confirmationToken));
+    var confirmationLink = $"{publicBaseUrl}/api/identity/confirm-email?userId={applicationUser.Id}&token={encodedToken}";
+    await emailSender.SendAsync(
+        applicationUser.Email!,
+        "Confirmez votre adresse email",
+        $"Bonjour {domainUser.DisplayName},\n\nConfirmez votre compte en suivant ce lien :\n{confirmationLink}",
+        cancellationToken);
+
     return Results.Created($"/api/identity/register/{domainUser.Id}",
         new UserDto(domainUser.Id, domainUser.Email.Value, domainUser.DisplayName, domainUser.CreatedAtUtc));
 })
@@ -154,6 +181,11 @@ app.MapPost("/api/identity/login", async (
         return Results.Unauthorized();
     }
 
+    if (!await userManager.IsEmailConfirmedAsync(user))
+    {
+        return Results.BadRequest(new { message = "Veuillez confirmer votre adresse email avant de vous connecter." });
+    }
+
     var roles = await userManager.GetRolesAsync(user);
     var token = tokenGenerator.GenerateToken(user.Id, user.Email!, [.. roles]);
 
@@ -161,11 +193,99 @@ app.MapPost("/api/identity/login", async (
 })
 .WithName("Login");
 
+app.MapGet("/api/identity/confirm-email", async (
+    Guid userId,
+    string token,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var user = await userManager.FindByIdAsync(userId.ToString());
+    if (user is null)
+    {
+        return Results.NotFound();
+    }
+
+    string decodedToken;
+    try
+    {
+        decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+    }
+    catch (FormatException)
+    {
+        return Results.BadRequest(new { message = "Lien de confirmation invalide." });
+    }
+
+    var result = await userManager.ConfirmEmailAsync(user, decodedToken);
+    if (!result.Succeeded)
+    {
+        return Results.BadRequest(new { message = "Lien de confirmation invalide ou expiré." });
+    }
+
+    return Results.Ok(new { message = "Email confirmé. Vous pouvez maintenant vous connecter." });
+})
+.WithName("ConfirmEmail");
+
+app.MapPost("/api/identity/forgot-password", async (
+    ForgotPasswordRequest request,
+    UserManager<ApplicationUser> userManager,
+    IEmailSender emailSender,
+    CancellationToken cancellationToken) =>
+{
+    var user = await userManager.FindByEmailAsync(request.Email);
+
+    // Ne révèle jamais si l'email correspond à un compte existant - toujours la même réponse,
+    // que l'email envoie réellement un message ou non.
+    if (user is not null)
+    {
+        var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(resetToken));
+        await emailSender.SendAsync(
+            user.Email!,
+            "Réinitialisation de votre mot de passe",
+            $"Pour réinitialiser votre mot de passe, appelez POST /api/identity/reset-password avec cet email et ce token :\n{encodedToken}",
+            cancellationToken);
+    }
+
+    return Results.Ok(new { message = "Si un compte existe avec cet email, un email de réinitialisation a été envoyé." });
+})
+.WithName("ForgotPassword");
+
+app.MapPost("/api/identity/reset-password", async (
+    ResetPasswordRequest request,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var user = await userManager.FindByEmailAsync(request.Email);
+    if (user is null)
+    {
+        return Results.BadRequest(new { message = "Email ou token invalide." });
+    }
+
+    string decodedToken;
+    try
+    {
+        decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+    }
+    catch (FormatException)
+    {
+        return Results.BadRequest(new { message = "Token invalide." });
+    }
+
+    var result = await userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
+    if (!result.Succeeded)
+    {
+        return Results.ValidationProblem(result.Errors.ToDictionary(e => e.Code, e => new[] { e.Description }));
+    }
+
+    return Results.Ok(new { message = "Mot de passe réinitialisé." });
+})
+.WithName("ResetPassword");
+
 app.MapGet("/health/live", () => Results.Ok());
 
 app.Run();
 
 record RegisterRequest(string Email, string Password, string DisplayName);
 record LoginRequest(string Email, string Password);
+record ForgotPasswordRequest(string Email);
+record ResetPasswordRequest(string Email, string Token, string NewPassword);
 
 public partial class Program;
