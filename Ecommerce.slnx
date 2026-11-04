@@ -22,6 +22,9 @@
     <Project Path="src/Services/Ordering/Ordering.Domain/Ordering.Domain.csproj" />
     <Project Path="src/Services/Ordering/Ordering.Infrastructure/Ordering.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Web/">
+    <Project Path="src/Web/Ecommerce.Web/Ecommerce.Web.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Services/" />
   <Folder Name="/tests/Services/Catalog/">

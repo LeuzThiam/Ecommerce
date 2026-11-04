@@ -1,0 +1,25 @@
+@model ProductDto
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<a asp-controller="Catalog" asp-action="Index">&larr; Retour au catalogue</a>
+
+<h1>@Model.Name</h1>
+<p class="fs-4">@Model.Price.ToString("C")</p>
+<p class="text-muted">
+    @(Model.Stock > 0 ? $"{Model.Stock} en stock" : "Rupture de stock")
+</p>
+
+@if (Model.Stock > 0)
+{
+    <form asp-controller="Cart" asp-action="Add" method="post" class="row g-2">
+        <input type="hidden" name="productId" value="@Model.Id" />
+        <div class="col-auto">
+            <input type="number" name="quantity" value="1" min="1" max="@Model.Stock" class="form-control" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Ajouter au panier</button>
+        </div>
+    </form>
+}
