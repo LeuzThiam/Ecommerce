@@ -22,6 +22,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // suffit qu'elle ne soit pas vide pour passer le "?? throw" de Program.cs.
         Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", "Data Source=:memory:");
 
+        // Clé de test uniquement, jamais utilisée en dehors de ce projet de tests — aucun lien
+        // avec une vraie clé de signature JWT de production.
+        Environment.SetEnvironmentVariable("Jwt__SecretKey", "test-secret-key-never-used-outside-of-tests-0123456789");
+
         builder.UseEnvironment("Testing");
 
         builder.ConfigureServices(services =>

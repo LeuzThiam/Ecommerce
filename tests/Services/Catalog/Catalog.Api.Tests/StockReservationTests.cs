@@ -1,11 +1,22 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
 namespace Catalog.Api.Tests;
 
 public class StockReservationTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    // Ces tests portent sur la logique de réservation de stock, pas sur l'autorisation —
+    // le client utilisé ici est authentifié en tant qu'administrateur pour pouvoir créer les
+    // produits nécessaires à chaque scénario.
+    private readonly HttpClient _client = CreateAuthenticatedClient(factory);
+
+    private static HttpClient CreateAuthenticatedClient(CustomWebApplicationFactory factory)
+    {
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.GenerateToken("Administrator"));
+        return client;
+    }
 
     [Fact]
     public async Task Reserve_WithEnoughStock_ReturnsOk()
