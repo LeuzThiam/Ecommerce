@@ -19,5 +19,14 @@ public sealed class OrderRepository(ApplicationDbContext dbContext) : IOrderRepo
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Order>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Orders
+            .Include(o => o.Items)
+            .Where(o => o.CustomerId == customerId)
+            .OrderByDescending(o => o.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken) => dbContext.SaveChangesAsync(cancellationToken);
 }

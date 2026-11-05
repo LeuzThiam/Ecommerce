@@ -71,6 +71,6 @@ public sealed class CheckoutService(
             .Select(i => new OrderItemDto(i.ProductId, i.ProductName, i.UnitPrice, i.Quantity, i.Subtotal))
             .ToList();
 
-        return new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), items, order.Total);
+        return new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), items, order.Total, order.CreatedAtUtc);
     }
 }

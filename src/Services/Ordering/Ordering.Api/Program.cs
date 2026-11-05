@@ -1,5 +1,10 @@
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Ordering.Application;
+using Ordering.Domain;
 using Ordering.Domain.Common;
 using Ordering.Infrastructure;
 using Ordering.Infrastructure.Persistence;
@@ -36,6 +41,30 @@ builder.Services.AddScoped<IPaymentGateway, StripePaymentGateway>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
+// Même clé de signature que Identity.Api — c'est ce qui permet à ce service de valider
+// l'identité d'un appelant sans dépendre directement d'Identity.Api à l'exécution.
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
+    ?? throw new InvalidOperationException("Jwt:SecretKey est requis — doit être identique sur Identity.Api, Catalog.Api et Ordering.Api.");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Ecommerce";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Ecommerce";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+            ValidateLifetime = true,
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 if (!app.Environment.IsEnvironment("Testing"))
@@ -49,9 +78,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// TODO (Issue #10) : remplacer customerId en paramètre de route par l'identité extraite du JWT
-// une fois le schéma d'autorisation inter-services résolu — voir la note de l'Issue #3.
+app.UseAuthentication();
+app.UseAuthorization();
 
+// Le panier et le checkout restent accessibles par customerId de route (panier anonyme, cookie
+// côté Web - voir Issue #6) : un visiteur non connecté doit pouvoir acheter. Seule la consultation
+// de l'historique (ci-dessous) exige une identité authentifiée, puisqu'un client sans compte n'a
+// justement rien à "retrouver" d'une visite à l'autre.
 app.MapGet("/api/ordering/cart/{customerId}", async (
     Guid customerId,
     ICartService cartService,
@@ -125,23 +158,36 @@ app.MapPost("/api/ordering/checkout/{customerId}", async (
     }
 });
 
-app.MapGet("/api/ordering/orders/{orderId}", async (
+app.MapGet("/api/ordering/orders", async (
+    ClaimsPrincipal principal,
+    IOrderRepository orderRepository,
+    CancellationToken cancellationToken) =>
+{
+    var orders = await orderRepository.GetByCustomerIdAsync(GetCustomerId(principal), cancellationToken);
+    return Results.Ok(orders.Select(ToOrderDto));
+})
+.RequireAuthorization()
+.WithName("GetOrderHistory");
+
+app.MapGet("/api/ordering/orders/{orderId:guid}", async (
     Guid orderId,
+    ClaimsPrincipal principal,
     IOrderRepository orderRepository,
     CancellationToken cancellationToken) =>
 {
     var order = await orderRepository.GetByIdAsync(orderId, cancellationToken);
-    if (order is null)
+
+    // Toujours répondre 404 (jamais 403) quand la commande appartient à quelqu'un d'autre : on ne
+    // révèle même pas qu'un identifiant deviné correspond à une commande qui existe.
+    if (order is null || order.CustomerId != GetCustomerId(principal))
     {
         return Results.NotFound();
     }
 
-    var items = order.Items
-        .Select(i => new OrderItemDto(i.ProductId, i.ProductName, i.UnitPrice, i.Quantity, i.Subtotal))
-        .ToList();
-
-    return Results.Ok(new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), items, order.Total));
-});
+    return Results.Ok(ToOrderDto(order));
+})
+.RequireAuthorization()
+.WithName("GetOrder");
 
 app.MapPost("/api/ordering/orders/{orderId}/payment-intent", async (
     Guid orderId,
@@ -177,6 +223,18 @@ app.MapPost("/api/ordering/payments/webhook", async (
 app.MapGet("/health/live", () => Results.Ok());
 
 app.Run();
+
+static Guid GetCustomerId(ClaimsPrincipal principal) =>
+    Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+static OrderDto ToOrderDto(Order order)
+{
+    var items = order.Items
+        .Select(i => new OrderItemDto(i.ProductId, i.ProductName, i.UnitPrice, i.Quantity, i.Subtotal))
+        .ToList();
+
+    return new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), items, order.Total, order.CreatedAtUtc);
+}
 
 record AddCartItemRequest(Guid ProductId, int Quantity);
 record UpdateCartItemQuantityRequest(int Quantity);
