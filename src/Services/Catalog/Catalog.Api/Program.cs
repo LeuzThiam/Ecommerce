@@ -5,17 +5,20 @@ using Catalog.Domain.Common;
 using Catalog.Infrastructure;
 using Catalog.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("La chaîne de connexion DefaultConnection est requise.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddHealthChecks().AddDbContextCheck<ApplicationDbContext>();
 
 builder.Services.AddScoped<IProductCatalog, EfProductCatalog>();
 builder.Services.AddScoped<ICategoryAdminService, CategoryAdminService>();
@@ -48,6 +51,28 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("AdminOnly", policy => policy.RequireRole("Administrator"));
 
 var app = builder.Build();
+
+// Gestionnaire global : traduit toute DomainException (violation d'une règle métier) en Problem
+// Details 400 avec le message du domaine, au lieu de laisser chaque endpoint répéter son propre
+// try/catch. Toute autre exception est logguée (jamais avalée silencieusement) puis renvoyée
+// comme Problem Details 500 générique, sans fuite de détails internes au client.
+app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async context =>
+{
+    var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+    if (exception is DomainException domainException)
+    {
+        await Results.Problem(title: "Règle métier violée", detail: domainException.Message, statusCode: StatusCodes.Status400BadRequest)
+            .ExecuteAsync(context);
+        return;
+    }
+
+    context.RequestServices.GetRequiredService<ILogger<Program>>()
+        .LogError(exception, "Erreur non gérée lors du traitement de {Method} {Path}", context.Request.Method, context.Request.Path);
+
+    await Results.Problem(title: "Une erreur inattendue est survenue.", statusCode: StatusCodes.Status500InternalServerError)
+        .ExecuteAsync(context);
+}));
 
 if (!app.Environment.IsEnvironment("Testing"))
 {
@@ -115,15 +140,8 @@ app.MapPost("/api/catalog/categories", async (
     ICategoryAdminService categories,
     CancellationToken cancellationToken) =>
 {
-    try
-    {
-        var category = await categories.CreateAsync(request.Name, cancellationToken);
-        return Results.Created($"/api/catalog/categories/{category.Id}", category);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    var category = await categories.CreateAsync(request.Name, cancellationToken);
+    return Results.Created($"/api/catalog/categories/{category.Id}", category);
 })
 .RequireAuthorization("AdminOnly");
 
@@ -132,15 +150,8 @@ app.MapPost("/api/catalog/products", async (
     IProductAdminService products,
     CancellationToken cancellationToken) =>
 {
-    try
-    {
-        var product = await products.CreateAsync(request.Name, request.Price, request.Stock, request.CategoryId, cancellationToken);
-        return Results.Created($"/api/catalog/products/{product.Slug}", product);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    var product = await products.CreateAsync(request.Name, request.Price, request.Stock, request.CategoryId, cancellationToken);
+    return Results.Created($"/api/catalog/products/{product.Slug}", product);
 })
 .RequireAuthorization("AdminOnly");
 
@@ -163,7 +174,7 @@ app.MapPost("/api/catalog/stock/release", async (
     return Results.Ok();
 });
 
-app.MapGet("/health/live", () => Results.Ok());
+app.MapHealthChecks("/health/live");
 
 app.Run();
 

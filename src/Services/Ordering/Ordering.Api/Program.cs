@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Ordering.Application;
@@ -12,11 +13,13 @@ using Ordering.Infrastructure.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("La chaîne de connexion DefaultConnection est requise.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddHealthChecks().AddDbContextCheck<ApplicationDbContext>();
 
 var catalogApiBaseUrl = builder.Configuration["Services:CatalogApi"]
     ?? throw new InvalidOperationException("La configuration Services:CatalogApi est requise.");
@@ -67,6 +70,28 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Gestionnaire global : traduit toute DomainException (violation d'une règle métier) en Problem
+// Details 400 avec le message du domaine, au lieu de laisser chaque endpoint répéter son propre
+// try/catch. Toute autre exception est logguée (jamais avalée silencieusement) puis renvoyée
+// comme Problem Details 500 générique, sans fuite de détails internes au client.
+app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async context =>
+{
+    var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+    if (exception is DomainException domainException)
+    {
+        await Results.Problem(title: "Règle métier violée", detail: domainException.Message, statusCode: StatusCodes.Status400BadRequest)
+            .ExecuteAsync(context);
+        return;
+    }
+
+    context.RequestServices.GetRequiredService<ILogger<Program>>()
+        .LogError(exception, "Erreur non gérée lors du traitement de {Method} {Path}", context.Request.Method, context.Request.Path);
+
+    await Results.Problem(title: "Une erreur inattendue est survenue.", statusCode: StatusCodes.Status500InternalServerError)
+        .ExecuteAsync(context);
+}));
+
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
@@ -99,14 +124,7 @@ app.MapPost("/api/ordering/cart/{customerId}/items", async (
     ICartService cartService,
     CancellationToken cancellationToken) =>
 {
-    try
-    {
-        return Results.Ok(await cartService.AddItemAsync(customerId, request.ProductId, request.Quantity, cancellationToken));
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    return Results.Ok(await cartService.AddItemAsync(customerId, request.ProductId, request.Quantity, cancellationToken));
 });
 
 app.MapPut("/api/ordering/cart/{customerId}/items/{productId}", async (
@@ -116,14 +134,7 @@ app.MapPut("/api/ordering/cart/{customerId}/items/{productId}", async (
     ICartService cartService,
     CancellationToken cancellationToken) =>
 {
-    try
-    {
-        return Results.Ok(await cartService.UpdateQuantityAsync(customerId, productId, request.Quantity, cancellationToken));
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    return Results.Ok(await cartService.UpdateQuantityAsync(customerId, productId, request.Quantity, cancellationToken));
 });
 
 app.MapDelete("/api/ordering/cart/{customerId}/items/{productId}", async (
@@ -132,14 +143,7 @@ app.MapDelete("/api/ordering/cart/{customerId}/items/{productId}", async (
     ICartService cartService,
     CancellationToken cancellationToken) =>
 {
-    try
-    {
-        return Results.Ok(await cartService.RemoveItemAsync(customerId, productId, cancellationToken));
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    return Results.Ok(await cartService.RemoveItemAsync(customerId, productId, cancellationToken));
 });
 
 app.MapPost("/api/ordering/checkout/{customerId}", async (
@@ -147,15 +151,8 @@ app.MapPost("/api/ordering/checkout/{customerId}", async (
     IOrderService orderService,
     CancellationToken cancellationToken) =>
 {
-    try
-    {
-        var order = await orderService.CheckoutAsync(customerId, cancellationToken);
-        return Results.Created($"/api/ordering/orders/{order.Id}", order);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    var order = await orderService.CheckoutAsync(customerId, cancellationToken);
+    return Results.Created($"/api/ordering/orders/{order.Id}", order);
 });
 
 app.MapGet("/api/ordering/orders", async (
@@ -194,14 +191,7 @@ app.MapPost("/api/ordering/orders/{orderId}/payment-intent", async (
     IPaymentService paymentService,
     CancellationToken cancellationToken) =>
 {
-    try
-    {
-        return Results.Ok(await paymentService.CreatePaymentIntentAsync(orderId, cancellationToken));
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    return Results.Ok(await paymentService.CreatePaymentIntentAsync(orderId, cancellationToken));
 });
 
 // Stripe envoie ce webhook pour confirmer (ou refuser) un paiement. On lit le corps brut de la
@@ -220,7 +210,7 @@ app.MapPost("/api/ordering/payments/webhook", async (
     return Results.Ok();
 });
 
-app.MapGet("/health/live", () => Results.Ok());
+app.MapHealthChecks("/health/live");
 
 app.Run();
 
