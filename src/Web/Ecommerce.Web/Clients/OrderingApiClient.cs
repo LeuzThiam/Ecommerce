@@ -57,11 +57,14 @@ public sealed class OrderingApiClient(HttpClient httpClient) : IOrderingApiClien
         return await response.Content.ReadFromJsonAsync<CartDto>(cancellationToken);
     }
 
+    // Depuis l'Issue #21, Ordering.Api traduit les DomainException en Problem Details (RFC 7807)
+    // via un gestionnaire d'exceptions global plutôt qu'un corps { message } ad-hoc par endpoint
+    // - le message lisible se trouve désormais dans "detail".
     private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken);
-        return error?.Message ?? "La requête a été refusée par le service de commandes.";
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>(cancellationToken);
+        return problem?.Detail ?? "La requête a été refusée par le service de commandes.";
     }
 
-    private sealed record ErrorResponse(string Message);
+    private sealed record ProblemDetailsResponse(string Detail);
 }

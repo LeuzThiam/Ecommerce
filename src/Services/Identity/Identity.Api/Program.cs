@@ -7,6 +7,7 @@ using Identity.Infrastructure;
 using Identity.Infrastructure.Emailing;
 using Identity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +16,13 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("La chaîne de connexion DefaultConnection est requise.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddHealthChecks().AddDbContextCheck<ApplicationDbContext>();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
 {
@@ -90,6 +93,28 @@ var publicBaseUrl = builder.Configuration["PublicBaseUrl"] ?? "http://localhost:
 
 var app = builder.Build();
 
+// Gestionnaire global : traduit toute DomainException (violation d'une règle métier) en Problem
+// Details 400 avec le message du domaine, au lieu de laisser chaque endpoint répéter son propre
+// try/catch. Toute autre exception est logguée (jamais avalée silencieusement) puis renvoyée
+// comme Problem Details 500 générique, sans fuite de détails internes au client.
+app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async context =>
+{
+    var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+    if (exception is DomainException domainException)
+    {
+        await Results.Problem(title: "Règle métier violée", detail: domainException.Message, statusCode: StatusCodes.Status400BadRequest)
+            .ExecuteAsync(context);
+        return;
+    }
+
+    context.RequestServices.GetRequiredService<ILogger<Program>>()
+        .LogError(exception, "Erreur non gérée lors du traitement de {Method} {Path}", context.Request.Method, context.Request.Path);
+
+    await Results.Problem(title: "Une erreur inattendue est survenue.", statusCode: StatusCodes.Status500InternalServerError)
+        .ExecuteAsync(context);
+}));
+
 // En environnement "Testing", la factory de test crée le schéma avec EnsureCreated() sur
 // SQLite — appliquer les migrations (générées pour SQL Server) échouerait inutilement. Le seed
 // des rôles, lui, ne dépend d'aucun fournisseur particulier et doit tourner dans tous les cas —
@@ -131,15 +156,7 @@ app.MapPost("/api/identity/register", async (
         return Results.Conflict(new { message = "Cet email est déjà utilisé." });
     }
 
-    User domainUser;
-    try
-    {
-        domainUser = User.Register(request.Email, request.DisplayName);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    var domainUser = User.Register(request.Email, request.DisplayName);
 
     var applicationUser = new ApplicationUser
     {
@@ -322,14 +339,7 @@ app.MapPut("/api/identity/profile", async (
         return Results.NotFound();
     }
 
-    try
-    {
-        domainUser.UpdateDisplayName(request.DisplayName);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    domainUser.UpdateDisplayName(request.DisplayName);
 
     await userRepository.UpdateAsync(domainUser, cancellationToken);
 
@@ -366,15 +376,7 @@ app.MapPost("/api/identity/addresses", async (
         return Results.NotFound();
     }
 
-    Address address;
-    try
-    {
-        address = domainUser.AddAddress(request.Line1, request.Line2, request.City, request.PostalCode, request.Country);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    var address = domainUser.AddAddress(request.Line1, request.Line2, request.City, request.PostalCode, request.Country);
 
     await userRepository.UpdateAsync(domainUser, cancellationToken);
 
@@ -396,14 +398,7 @@ app.MapPut("/api/identity/addresses/{addressId:guid}", async (
         return Results.NotFound();
     }
 
-    try
-    {
-        domainUser.UpdateAddress(addressId, request.Line1, request.Line2, request.City, request.PostalCode, request.Country);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    domainUser.UpdateAddress(addressId, request.Line1, request.Line2, request.City, request.PostalCode, request.Country);
 
     await userRepository.UpdateAsync(domainUser, cancellationToken);
 
@@ -424,14 +419,7 @@ app.MapDelete("/api/identity/addresses/{addressId:guid}", async (
         return Results.NotFound();
     }
 
-    try
-    {
-        domainUser.RemoveAddress(addressId);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    domainUser.RemoveAddress(addressId);
 
     await userRepository.UpdateAsync(domainUser, cancellationToken);
 
@@ -452,14 +440,7 @@ app.MapPost("/api/identity/addresses/{addressId:guid}/default", async (
         return Results.NotFound();
     }
 
-    try
-    {
-        domainUser.SetDefaultAddress(addressId);
-    }
-    catch (DomainException ex)
-    {
-        return Results.BadRequest(new { message = ex.Message });
-    }
+    domainUser.SetDefaultAddress(addressId);
 
     await userRepository.UpdateAsync(domainUser, cancellationToken);
 
@@ -468,7 +449,7 @@ app.MapPost("/api/identity/addresses/{addressId:guid}/default", async (
 .RequireAuthorization()
 .WithName("SetDefaultAddress");
 
-app.MapGet("/health/live", () => Results.Ok());
+app.MapHealthChecks("/health/live");
 
 app.Run();
 
