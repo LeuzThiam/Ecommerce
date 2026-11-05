@@ -22,4 +22,14 @@ public sealed class Category
 
         return new Category(Guid.NewGuid(), name.Trim());
     }
+
+    public void Update(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainException("Le nom de la catégorie est requis.");
+        }
+
+        Name = name.Trim();
+    }
 }

@@ -145,6 +145,17 @@ app.MapPost("/api/catalog/categories", async (
 })
 .RequireAuthorization("AdminOnly");
 
+app.MapPut("/api/catalog/categories/{id:guid}", async (
+    Guid id,
+    UpdateCategoryRequest request,
+    ICategoryAdminService categories,
+    CancellationToken cancellationToken) =>
+{
+    var category = await categories.UpdateAsync(id, request.Name, cancellationToken);
+    return category is null ? Results.NotFound() : Results.Ok(category);
+})
+.RequireAuthorization("AdminOnly");
+
 app.MapPost("/api/catalog/products", async (
     CreateProductRequest request,
     IProductAdminService products,
@@ -152,6 +163,40 @@ app.MapPost("/api/catalog/products", async (
 {
     var product = await products.CreateAsync(request.Name, request.Price, request.Stock, request.CategoryId, cancellationToken);
     return Results.Created($"/api/catalog/products/{product.Slug}", product);
+})
+.RequireAuthorization("AdminOnly");
+
+app.MapPut("/api/catalog/products/{id:guid}", async (
+    Guid id,
+    UpdateProductRequest request,
+    IProductAdminService products,
+    CancellationToken cancellationToken) =>
+{
+    var product = await products.UpdateAsync(id, request.Name, request.Price, request.Stock, request.CategoryId, cancellationToken);
+    return product is null ? Results.NotFound() : Results.Ok(product);
+})
+.RequireAuthorization("AdminOnly");
+
+// Désactivation logique seulement (voir Product.Deactivate) - il n'existe volontairement aucun
+// endpoint de suppression physique, pour garantir qu'un produit avec des commandes liées ne peut
+// jamais être supprimé.
+app.MapPost("/api/catalog/products/{id:guid}/deactivate", async (
+    Guid id,
+    IProductAdminService products,
+    CancellationToken cancellationToken) =>
+{
+    var product = await products.DeactivateAsync(id, cancellationToken);
+    return product is null ? Results.NotFound() : Results.Ok(product);
+})
+.RequireAuthorization("AdminOnly");
+
+app.MapPost("/api/catalog/products/{id:guid}/activate", async (
+    Guid id,
+    IProductAdminService products,
+    CancellationToken cancellationToken) =>
+{
+    var product = await products.ActivateAsync(id, cancellationToken);
+    return product is null ? Results.NotFound() : Results.Ok(product);
 })
 .RequireAuthorization("AdminOnly");
 
@@ -179,7 +224,9 @@ app.MapHealthChecks("/health/live");
 app.Run();
 
 record CreateCategoryRequest(string Name);
+record UpdateCategoryRequest(string Name);
 record CreateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId);
+record UpdateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId);
 record ReserveStockRequest(Guid ProductId, int Quantity);
 
 public partial class Program;

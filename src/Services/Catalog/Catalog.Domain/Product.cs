@@ -11,9 +11,10 @@ public sealed class Product
     public string Slug { get; private set; }
     public decimal Price { get; private set; }
     public int Stock { get; private set; }
-    public Guid CategoryId { get; }
+    public Guid CategoryId { get; private set; }
+    public bool IsActive { get; private set; }
 
-    private Product(Guid id, string name, string slug, decimal price, int stock, Guid categoryId)
+    private Product(Guid id, string name, string slug, decimal price, int stock, Guid categoryId, bool isActive)
     {
         Id = id;
         Name = name;
@@ -21,9 +22,35 @@ public sealed class Product
         Price = price;
         Stock = stock;
         CategoryId = categoryId;
+        IsActive = isActive;
     }
 
     public static Product Create(string name, decimal price, int stock, Guid categoryId)
+    {
+        Validate(name, price, stock);
+
+        return new Product(Guid.NewGuid(), name.Trim(), GenerateSlug(name), price, stock, categoryId, isActive: true);
+    }
+
+    public void Update(string name, decimal price, int stock, Guid categoryId)
+    {
+        Validate(name, price, stock);
+
+        Name = name.Trim();
+        Slug = GenerateSlug(name);
+        Price = price;
+        Stock = stock;
+        CategoryId = categoryId;
+    }
+
+    // Désactivation logique seulement - jamais de suppression physique. Un produit déjà commandé
+    // doit rester consultable dans l'historique des commandes (OrderItem conserve de toute façon
+    // sa propre copie du nom/prix au moment de l'achat, indépendante de ce Product).
+    public void Deactivate() => IsActive = false;
+
+    public void Activate() => IsActive = true;
+
+    private static void Validate(string name, decimal price, int stock)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -39,8 +66,6 @@ public sealed class Product
         {
             throw new DomainException("Le stock ne peut pas être négatif.");
         }
-
-        return new Product(Guid.NewGuid(), name.Trim(), GenerateSlug(name), price, stock, categoryId);
     }
 
     public bool TryReserveStock(int quantity)

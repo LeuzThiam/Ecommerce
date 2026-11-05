@@ -23,4 +23,18 @@ public sealed class CategoryAdminService(ApplicationDbContext dbContext) : ICate
             .Select(c => new CategoryDto(c.Id, c.Name))
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<CategoryDto?> UpdateAsync(Guid id, string name, CancellationToken cancellationToken)
+    {
+        var category = await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (category is null)
+        {
+            return null;
+        }
+
+        category.Update(name);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new CategoryDto(category.Id, category.Name);
+    }
 }

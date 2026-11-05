@@ -16,6 +16,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Price).HasPrecision(18, 2);
         builder.Property(p => p.Stock).IsRequired();
         builder.Property(p => p.CategoryId).IsRequired();
+        builder.Property(p => p.IsActive).IsRequired();
 
         // Jeton de concurrence optimiste géré par l'application (pas par IsRowVersion(), qui
         // dépend d'une fonctionnalité propre à SQL Server et ne fonctionne pas sur SQLite).
