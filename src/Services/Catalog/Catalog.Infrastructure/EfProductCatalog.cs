@@ -9,7 +9,7 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
 {
     public async Task<PagedResult<ProductDto>> SearchAsync(ProductSearch search, CancellationToken cancellationToken)
     {
-        var query = dbContext.Products.AsNoTracking().AsQueryable();
+        var query = dbContext.Products.AsNoTracking().Where(p => p.IsActive);
 
         if (!string.IsNullOrWhiteSpace(search.Query))
         {
@@ -43,18 +43,22 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
         var items = await query
             .Skip((search.Page - 1) * search.PageSize)
             .Take(search.PageSize)
-            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId))
+            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProductDto>(items, search.Page, search.PageSize, totalCount);
     }
 
+    // Les deux lectures ci-dessous excluent aussi les produits désactivés : ils ont disparu du
+    // catalogue public, donc plus consultables par slug ni achetables (Ordering.Api appelle
+    // GetByIdAsync au checkout - un produit désactivé y échoue avec "n'existe plus", ce qui est
+    // le comportement voulu).
     public async Task<ProductDto?> GetBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         return await dbContext.Products
             .AsNoTracking()
-            .Where(p => p.Slug == slug)
-            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId))
+            .Where(p => p.Slug == slug && p.IsActive)
+            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -62,8 +66,8 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
     {
         return await dbContext.Products
             .AsNoTracking()
-            .Where(p => p.Id == id)
-            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId))
+            .Where(p => p.Id == id && p.IsActive)
+            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }
