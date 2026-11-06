@@ -200,6 +200,36 @@ app.MapPost("/api/ordering/orders/{orderId:guid}/refund", async (
 .RequireAuthorization("AdminOnly")
 .WithName("RefundOrder");
 
+// Vue administrateur : toutes les commandes de tous les clients, sans filtrage par CustomerId -
+// contrairement à GetOrderHistory qui ne montre jamais que les commandes de l'appelant.
+app.MapGet("/api/ordering/admin/orders", async (
+    IOrderRepository orderRepository,
+    CancellationToken cancellationToken) =>
+{
+    var orders = await orderRepository.GetAllAsync(cancellationToken);
+    return Results.Ok(orders.Select(o => ToOrderDto(o)));
+})
+.RequireAuthorization("AdminOnly")
+.WithName("GetAllOrdersAdmin");
+
+app.MapGet("/api/ordering/admin/orders/{orderId:guid}", async (
+    Guid orderId,
+    IOrderRepository orderRepository,
+    IPaymentRepository paymentRepository,
+    CancellationToken cancellationToken) =>
+{
+    var order = await orderRepository.GetByIdAsync(orderId, cancellationToken);
+    if (order is null)
+    {
+        return Results.NotFound();
+    }
+
+    var payments = await paymentRepository.GetByOrderIdAsync(orderId, cancellationToken);
+    return Results.Ok(ToOrderDto(order, payments));
+})
+.RequireAuthorization("AdminOnly")
+.WithName("GetOrderAdmin");
+
 app.MapPost("/api/ordering/orders/{orderId}/payment-intent", async (
     Guid orderId,
     IPaymentService paymentService,
