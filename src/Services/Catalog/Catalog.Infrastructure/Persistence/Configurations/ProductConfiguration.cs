@@ -24,5 +24,16 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         // EF Core, jamais dans la classe Product — ça évite de polluer le Domain avec un détail
         // purement technique de persistance. Incrémentée dans ApplicationDbContext.SaveChanges.
         builder.Property<int>("Version").IsConcurrencyToken();
+
+        builder.HasMany(p => p.Variants)
+            .WithOne()
+            .HasForeignKey("ProductId")
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Variants n'a pas de setter public (IReadOnlyList<ProductVariant>) — on dit à EF Core
+        // d'écrire directement dans le champ privé _variants plutôt que de chercher un setter
+        // qui n'existe pas.
+        builder.Navigation(p => p.Variants).HasField("_variants").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

@@ -58,6 +58,30 @@ public sealed class ProductAdminService(ApplicationDbContext dbContext) : IProdu
         return ToDto(product);
     }
 
+    public async Task<ProductDto?> AddVariantAsync(Guid productId, string name, decimal price, int stock, CancellationToken cancellationToken)
+    {
+        var product = await dbContext.Products
+            .Include(p => p.Variants)
+            .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
+        if (product is null)
+        {
+            return null;
+        }
+
+        product.AddVariant(name, price, stock);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ToDto(product);
+    }
+
     private static ProductDto ToDto(Product product) =>
-        new(product.Id, product.Name, product.Slug, product.Price, product.Stock, product.CategoryId, product.IsActive);
+        new(
+            product.Id,
+            product.Name,
+            product.Slug,
+            product.Price,
+            product.Stock,
+            product.CategoryId,
+            product.IsActive,
+            product.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList());
 }
