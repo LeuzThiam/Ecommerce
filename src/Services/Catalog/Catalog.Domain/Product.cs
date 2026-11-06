@@ -6,6 +6,8 @@ namespace Catalog.Domain;
 
 public sealed class Product
 {
+    private readonly List<ProductVariant> _variants = [];
+
     public Guid Id { get; }
     public string Name { get; private set; }
     public string Slug { get; private set; }
@@ -13,6 +15,7 @@ public sealed class Product
     public int Stock { get; private set; }
     public Guid CategoryId { get; private set; }
     public bool IsActive { get; private set; }
+    public IReadOnlyList<ProductVariant> Variants => _variants;
 
     private Product(Guid id, string name, string slug, decimal price, int stock, Guid categoryId, bool isActive)
     {
@@ -92,6 +95,13 @@ public sealed class Product
         }
 
         Stock += quantity;
+    }
+
+    public ProductVariant AddVariant(string name, decimal price, int stock)
+    {
+        var variant = ProductVariant.Create(name, price, stock);
+        _variants.Add(variant);
+        return variant;
     }
 
     private static string GenerateSlug(string name)

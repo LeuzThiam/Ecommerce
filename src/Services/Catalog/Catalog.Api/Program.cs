@@ -200,6 +200,17 @@ app.MapPost("/api/catalog/products/{id:guid}/activate", async (
 })
 .RequireAuthorization("AdminOnly");
 
+app.MapPost("/api/catalog/products/{id:guid}/variants", async (
+    Guid id,
+    CreateProductVariantRequest request,
+    IProductAdminService products,
+    CancellationToken cancellationToken) =>
+{
+    var product = await products.AddVariantAsync(id, request.Name, request.Price, request.Stock, cancellationToken);
+    return product is null ? Results.NotFound() : Results.Ok(product);
+})
+.RequireAuthorization("AdminOnly");
+
 // Vue administrateur : inclut aussi les produits désactivés, contrairement à la recherche
 // publique ci-dessus - un admin doit pouvoir retrouver un produit désactivé pour le réactiver.
 app.MapGet("/api/catalog/admin/products", async (
@@ -259,6 +270,7 @@ record CreateCategoryRequest(string Name);
 record UpdateCategoryRequest(string Name);
 record CreateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId);
 record UpdateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId);
+record CreateProductVariantRequest(string Name, decimal Price, int Stock);
 record ReserveStockRequest(Guid ProductId, int Quantity);
 
 public partial class Program;

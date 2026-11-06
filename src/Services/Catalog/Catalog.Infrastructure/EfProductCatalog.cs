@@ -57,12 +57,16 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
     // catalogue public, donc plus consultables par slug ni achetables (Ordering.Api appelle
     // GetByIdAsync au checkout - un produit désactivé y échoue avec "n'existe plus", ce qui est
     // le comportement voulu).
+    // Les variantes ne sont incluses que pour la fiche produit (consultée à l'unité) - la
+    // recherche publique ci-dessus, qui liste des pages entières de produits, reste légère.
     public async Task<ProductDto?> GetBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         return await dbContext.Products
             .AsNoTracking()
             .Where(p => p.Slug == slug && p.IsActive)
-            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive))
+            .Select(p => new ProductDto(
+                p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive,
+                p.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -75,7 +79,9 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
         }
 
         return await query
-            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive))
+            .Select(p => new ProductDto(
+                p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive,
+                p.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }
