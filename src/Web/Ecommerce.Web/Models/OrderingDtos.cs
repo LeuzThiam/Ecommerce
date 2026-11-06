@@ -7,4 +7,15 @@ public sealed record CartDto(Guid Id, Guid CustomerId, IReadOnlyList<CartItemDto
 
 public sealed record OrderItemDto(Guid ProductId, string ProductName, decimal UnitPrice, int Quantity, decimal Subtotal);
 
-public sealed record OrderDto(Guid Id, Guid CustomerId, string Status, IReadOnlyList<OrderItemDto> Items, decimal Total);
+public sealed record OrderDto(
+    Guid Id,
+    Guid CustomerId,
+    string Status,
+    IReadOnlyList<OrderItemDto> Items,
+    decimal Total,
+    DateTime CreatedAtUtc = default);
+
+// Résultat du téléchargement de facture : Bytes renseigné en cas de succès, ErrorMessage quand
+// Ordering.Api a refusé (commande non payée) - tout le reste (ex. commande d'un autre client) se
+// traduit par les deux à null, que le contrôleur traite comme un 404.
+public sealed record InvoiceDownload(byte[]? Bytes, string? ErrorMessage);

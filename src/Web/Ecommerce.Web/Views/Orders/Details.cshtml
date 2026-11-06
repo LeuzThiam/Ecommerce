@@ -1,0 +1,40 @@
+@model OrderDto
+@{
+    ViewData["Title"] = "Détail de la commande";
+}
+
+<h1>Commande @Model.Id</h1>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<p>Statut : @Model.Status</p>
+<p>Date : @Model.CreatedAtUtc.ToString("dd/MM/yyyy")</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Produit</th>
+            <th>Prix unitaire</th>
+            <th>Quantité</th>
+            <th>Sous-total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td>@item.ProductName</td>
+                <td>@item.UnitPrice.ToString("C")</td>
+                <td>@item.Quantity</td>
+                <td>@item.Subtotal.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<p class="fs-4">Total : @Model.Total.ToString("C")</p>
+
+<a asp-controller="Orders" asp-action="Invoice" asp-route-id="@Model.Id" class="btn btn-outline-primary">Télécharger la facture</a>

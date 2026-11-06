@@ -1,0 +1,56 @@
+@model IReadOnlyList<AddressDto>
+@{
+    ViewData["Title"] = "Mes adresses";
+}
+
+<h1>Mes adresses</h1>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+
+@if (Model.Count == 0)
+{
+    <p>Aucune adresse enregistrée.</p>
+}
+else
+{
+    <ul class="list-group mb-4">
+        @foreach (var address in Model)
+        {
+            <li class="list-group-item">
+                @address.Line1@(string.IsNullOrWhiteSpace(address.Line2) ? "" : $", {address.Line2}"), @address.PostalCode @address.City, @address.Country
+                @if (address.IsDefault)
+                {
+                    <span class="badge bg-primary ms-2">Par défaut</span>
+                }
+            </li>
+        }
+    </ul>
+}
+
+<h2>Ajouter une adresse</h2>
+<form asp-controller="Account" asp-action="AddAddress" method="post" class="col-md-6">
+    <div class="mb-3">
+        <label class="form-label">Ligne 1</label>
+        <input type="text" name="line1" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Ligne 2 (optionnel)</label>
+        <input type="text" name="line2" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Ville</label>
+        <input type="text" name="city" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Code postal</label>
+        <input type="text" name="postalCode" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Pays</label>
+        <input type="text" name="country" class="form-control" required />
+    </div>
+    <button type="submit" class="btn btn-primary">Ajouter</button>
+</form>
