@@ -124,7 +124,7 @@ app.MapGet("/api/catalog/products/by-id/{id}", async (
     IProductCatalog catalog,
     CancellationToken cancellationToken) =>
 {
-    var product = await catalog.GetByIdAsync(id, cancellationToken);
+    var product = await catalog.GetByIdAsync(id, includeInactive: false, cancellationToken: cancellationToken);
     return product is null ? Results.NotFound() : Results.Ok(product);
 });
 
@@ -196,6 +196,38 @@ app.MapPost("/api/catalog/products/{id:guid}/activate", async (
     CancellationToken cancellationToken) =>
 {
     var product = await products.ActivateAsync(id, cancellationToken);
+    return product is null ? Results.NotFound() : Results.Ok(product);
+})
+.RequireAuthorization("AdminOnly");
+
+// Vue administrateur : inclut aussi les produits désactivés, contrairement à la recherche
+// publique ci-dessus - un admin doit pouvoir retrouver un produit désactivé pour le réactiver.
+app.MapGet("/api/catalog/admin/products", async (
+    IProductCatalog catalog,
+    string? query,
+    Guid? categoryId,
+    string sort,
+    int page,
+    int pageSize,
+    CancellationToken cancellationToken) =>
+{
+    var search = new ProductSearch(query, categoryId, null, null,
+        string.IsNullOrWhiteSpace(sort) ? "name" : sort,
+        page <= 0 ? 1 : page,
+        pageSize <= 0 ? 20 : pageSize,
+        IncludeInactive: true);
+
+    var result = await catalog.SearchAsync(search, cancellationToken);
+    return Results.Ok(result);
+})
+.RequireAuthorization("AdminOnly");
+
+app.MapGet("/api/catalog/admin/products/{id:guid}", async (
+    Guid id,
+    IProductCatalog catalog,
+    CancellationToken cancellationToken) =>
+{
+    var product = await catalog.GetByIdAsync(id, includeInactive: true, cancellationToken: cancellationToken);
     return product is null ? Results.NotFound() : Results.Ok(product);
 })
 .RequireAuthorization("AdminOnly");

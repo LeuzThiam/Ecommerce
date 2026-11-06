@@ -1,0 +1,72 @@
+@model OrderDto
+@{
+    ViewData["Title"] = "Détail de la commande (admin)";
+}
+
+<h1>Commande @Model.Id</h1>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<p>Client : @Model.CustomerId</p>
+<p>Statut : @Model.Status</p>
+<p>Date : @Model.CreatedAtUtc.ToString("dd/MM/yyyy")</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Produit</th>
+            <th>Prix unitaire</th>
+            <th>Quantité</th>
+            <th>Sous-total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td>@item.ProductName</td>
+                <td>@item.UnitPrice.ToString("C")</td>
+                <td>@item.Quantity</td>
+                <td>@item.Subtotal.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<p class="fs-4">Total : @Model.Total.ToString("C")</p>
+
+@if (Model.Payments is { Count: > 0 })
+{
+    <h2>Historique des paiements</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Statut</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var payment in Model.Payments)
+            {
+                <tr>
+                    <td>@payment.Status</td>
+                    <td>@payment.CreatedAtUtc.ToString("dd/MM/yyyy HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (Model.Status == "Paid")
+{
+    <form asp-area="Admin" asp-controller="Orders" asp-action="Refund" asp-route-id="@Model.Id" method="post">
+        <button type="submit" class="btn btn-outline-danger">Rembourser</button>
+    </form>
+}

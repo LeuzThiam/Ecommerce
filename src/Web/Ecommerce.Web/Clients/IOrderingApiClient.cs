@@ -19,4 +19,11 @@ public interface IOrderingApiClient
     Task<OrderDto?> GetOrderAsync(string accessToken, Guid orderId, CancellationToken cancellationToken);
 
     Task<InvoiceDownload> GetInvoiceAsync(string accessToken, Guid orderId, CancellationToken cancellationToken);
+
+    // Vue administrateur : toutes les commandes de tous les clients.
+    Task<IReadOnlyList<OrderDto>> GetAllOrdersAdminAsync(string accessToken, CancellationToken cancellationToken);
+
+    Task<OrderDto?> GetOrderAdminAsync(string accessToken, Guid orderId, CancellationToken cancellationToken);
+
+    Task RefundOrderAsync(string accessToken, Guid orderId, CancellationToken cancellationToken);
 }

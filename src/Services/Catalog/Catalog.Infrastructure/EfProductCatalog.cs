@@ -9,7 +9,11 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
 {
     public async Task<PagedResult<ProductDto>> SearchAsync(ProductSearch search, CancellationToken cancellationToken)
     {
-        var query = dbContext.Products.AsNoTracking().Where(p => p.IsActive);
+        var query = dbContext.Products.AsNoTracking().AsQueryable();
+        if (!search.IncludeInactive)
+        {
+            query = query.Where(p => p.IsActive);
+        }
 
         if (!string.IsNullOrWhiteSpace(search.Query))
         {
@@ -62,11 +66,15 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<ProductDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<ProductDto?> GetByIdAsync(Guid id, bool includeInactive, CancellationToken cancellationToken)
     {
-        return await dbContext.Products
-            .AsNoTracking()
-            .Where(p => p.Id == id && p.IsActive)
+        var query = dbContext.Products.AsNoTracking().Where(p => p.Id == id);
+        if (!includeInactive)
+        {
+            query = query.Where(p => p.IsActive);
+        }
+
+        return await query
             .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive))
             .FirstOrDefaultAsync(cancellationToken);
     }

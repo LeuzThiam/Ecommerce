@@ -123,6 +123,53 @@ public class ProductAdminTests(CustomWebApplicationFactory factory) : IClassFixt
     }
 
     [Fact]
+    public async Task SearchProductsAdmin_IncludesDeactivatedProducts()
+    {
+        var (productId, _, _) = await CreateProductAsync();
+        await _adminClient.PostAsync($"/api/catalog/products/{productId}/deactivate", null);
+
+        var response = await _adminClient.GetAsync("/api/catalog/admin/products?sort=name&page=1&pageSize=100");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var search = await response.Content.ReadFromJsonAsync<SearchResponse>();
+        Assert.Contains(search!.Items, p => p.Id == productId && !p.IsActive);
+    }
+
+    [Fact]
+    public async Task SearchProductsAdmin_AsClient_ReturnsForbidden()
+    {
+        var clientRoleClient = CreateAuthenticatedClient(factory, "Client");
+
+        var response = await clientRoleClient.GetAsync("/api/catalog/admin/products");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProductByIdAdmin_ForDeactivatedProduct_ReturnsProduct()
+    {
+        var (productId, _, _) = await CreateProductAsync();
+        await _adminClient.PostAsync($"/api/catalog/products/{productId}/deactivate", null);
+
+        var response = await _adminClient.GetAsync($"/api/catalog/admin/products/{productId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var product = await response.Content.ReadFromJsonAsync<ProductResponse>();
+        Assert.False(product!.IsActive);
+    }
+
+    [Fact]
+    public async Task GetProductByIdAdmin_AsClient_ReturnsForbidden()
+    {
+        var (productId, _, _) = await CreateProductAsync();
+        var clientRoleClient = CreateAuthenticatedClient(factory, "Client");
+
+        var response = await clientRoleClient.GetAsync($"/api/catalog/admin/products/{productId}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task DeactivateProduct_AsClient_ReturnsForbidden()
     {
         var (productId, _, _) = await CreateProductAsync();

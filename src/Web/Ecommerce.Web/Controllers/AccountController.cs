@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Ecommerce.Web.Clients;
 using Ecommerce.Web.Services;
@@ -34,7 +35,8 @@ public sealed class AccountController(IIdentityApiClient identityApiClient) : Co
             new(ClaimTypes.Name, email),
             new(WebClaimTypes.AccessToken, loginResult.AccessToken),
         };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        claims.AddRange(GetRoleClaims(loginResult.AccessToken));
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme, ClaimTypes.Name, ClaimTypes.Role);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -99,4 +101,15 @@ public sealed class AccountController(IIdentityApiClient identityApiClient) : Co
     }
 
     private string GetAccessToken() => User.FindFirstValue(WebClaimTypes.AccessToken)!;
+
+    // Le JWT encode les rôles de l'utilisateur (claim standard "role") - on les relit tels quels
+    // pour peupler le cookie du Web, afin que [Authorize(Roles = "Administrator")] fonctionne
+    // côté Web sans dupliquer la logique d'autorisation déjà faite par les API.
+    private static IEnumerable<Claim> GetRoleClaims(string accessToken)
+    {
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+        return token.Claims
+            .Where(c => c.Type is ClaimTypes.Role or "role")
+            .Select(c => new Claim(ClaimTypes.Role, c.Value));
+    }
 }

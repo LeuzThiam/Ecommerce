@@ -7,13 +7,16 @@ public sealed record CartDto(Guid Id, Guid CustomerId, IReadOnlyList<CartItemDto
 
 public sealed record OrderItemDto(Guid ProductId, string ProductName, decimal UnitPrice, int Quantity, decimal Subtotal);
 
+public sealed record PaymentAttemptDto(Guid Id, string Status, DateTime CreatedAtUtc);
+
 public sealed record OrderDto(
     Guid Id,
     Guid CustomerId,
     string Status,
     IReadOnlyList<OrderItemDto> Items,
     decimal Total,
-    DateTime CreatedAtUtc = default);
+    DateTime CreatedAtUtc = default,
+    IReadOnlyList<PaymentAttemptDto>? Payments = null);
 
 // Résultat du téléchargement de facture : Bytes renseigné en cas de succès, ErrorMessage quand
 // Ordering.Api a refusé (commande non payée) - tout le reste (ex. commande d'un autre client) se
