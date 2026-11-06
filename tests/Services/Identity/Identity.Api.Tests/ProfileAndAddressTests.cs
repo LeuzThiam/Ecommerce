@@ -90,6 +90,68 @@ public class ProfileAndAddressTests(CustomWebApplicationFactory factory) : IClas
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    // Ces trois tests couvrent le scénario Gherkin "Adresse d'un autre client" de l'Issue #22.
+    // Chaque endpoint de mutation d'adresse résout d'abord le User du token appelant, puis
+    // cherche l'adresse UNIQUEMENT dans les adresses de ce User (User.FindAddress) - l'isolation
+    // est donc déjà garantie par construction, ces tests le vérifient explicitement.
+    [Fact]
+    public async Task UpdateAddress_BelongingToAnotherClient_IsRejected()
+    {
+        var addressId = await CreateAddressAsync("owner-update@example.com");
+        await AuthenticateAsync("intruder-update@example.com");
+
+        var response = await _client.PutAsJsonAsync($"/api/identity/addresses/{addressId}", new
+        {
+            line1 = "Adresse usurpée",
+            line2 = (string?)null,
+            city = "Marseille",
+            postalCode = "13001",
+            country = "France"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveAddress_BelongingToAnotherClient_IsRejected()
+    {
+        var addressId = await CreateAddressAsync("owner-remove@example.com");
+        await AuthenticateAsync("intruder-remove@example.com");
+
+        var response = await _client.DeleteAsync($"/api/identity/addresses/{addressId}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetDefaultAddress_BelongingToAnotherClient_IsRejected()
+    {
+        var addressId = await CreateAddressAsync("owner-default@example.com");
+        await AuthenticateAsync("intruder-default@example.com");
+
+        var response = await _client.PostAsync($"/api/identity/addresses/{addressId}/default", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    private async Task<Guid> CreateAddressAsync(string ownerEmail)
+    {
+        await AuthenticateAsync(ownerEmail);
+
+        var response = await _client.PostAsJsonAsync("/api/identity/addresses", new
+        {
+            line1 = "1 rue du Propriétaire",
+            line2 = (string?)null,
+            city = "Paris",
+            postalCode = "75001",
+            country = "France"
+        });
+
+        var address = await response.Content.ReadFromJsonAsync<AddressResponse>();
+        _client.DefaultRequestHeaders.Authorization = null;
+        return address!.Id;
+    }
+
     private async Task AuthenticateAsync(string email)
     {
         const string password = "MotDePasse123!";
