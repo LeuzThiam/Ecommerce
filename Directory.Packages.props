@@ -20,5 +20,6 @@
 		<PackageVersion Include="Ocelot" Version="25.0.2" />
 		<PackageVersion Include="MailKit" Version="4.18.2" />
 		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.14" />
+		<PackageVersion Include="QuestPDF" Version="2026.9.1" />
 	</ItemGroup>
 </Project>
