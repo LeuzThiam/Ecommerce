@@ -86,6 +86,40 @@ public sealed class OrderingApiClient(HttpClient httpClient) : IOrderingApiClien
         return new InvoiceDownload(await response.Content.ReadAsByteArrayAsync(cancellationToken), null);
     }
 
+    public async Task<IReadOnlyList<OrderDto>> GetAllOrdersAdminAsync(string accessToken, CancellationToken cancellationToken)
+    {
+        using var request = CreateAuthenticatedRequest(HttpMethod.Get, "/api/ordering/admin/orders", accessToken);
+        var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var orders = await response.Content.ReadFromJsonAsync<List<OrderDto>>(cancellationToken);
+        return orders ?? [];
+    }
+
+    public async Task<OrderDto?> GetOrderAdminAsync(string accessToken, Guid orderId, CancellationToken cancellationToken)
+    {
+        using var request = CreateAuthenticatedRequest(HttpMethod.Get, $"/api/ordering/admin/orders/{orderId}", accessToken);
+        var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<OrderDto>(cancellationToken);
+    }
+
+    public async Task RefundOrderAsync(string accessToken, Guid orderId, CancellationToken cancellationToken)
+    {
+        using var request = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/ordering/orders/{orderId}/refund", accessToken);
+        var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            throw new OrderingApiException(await ReadErrorMessageAsync(response, cancellationToken));
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
     // HttpClient.DefaultRequestHeaders est mutable et partagé entre requêtes concurrentes via le
     // pool du HttpClientFactory - on pose donc l'en-tête Authorization par requête plutôt que dessus.
     private static HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string uri, string accessToken)

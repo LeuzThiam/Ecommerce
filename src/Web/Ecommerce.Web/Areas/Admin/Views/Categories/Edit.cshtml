@@ -1,0 +1,17 @@
+@model CategoryDto
+@{
+    ViewData["Title"] = "Modifier la catégorie";
+}
+
+<h1>Modifier la catégorie</h1>
+
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form method="post" class="col-md-4">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <div class="mb-3">
+        <label class="form-label">Nom</label>
+        <input type="text" name="name" class="form-control" value="@Model.Name" required />
+    </div>
+    <button type="submit" class="btn btn-primary">Enregistrer</button>
+</form>

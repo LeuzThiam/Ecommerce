@@ -1,6 +1,8 @@
+using System.Globalization;
 using Ecommerce.Web.Clients;
 using Ecommerce.Web.Filters;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,12 +44,29 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
 }
+// Un <input type="number"> HTML envoie toujours ses valeurs avec un point décimal, quelle que
+// soit la langue du navigateur (spec HTML5) - mais le binding de modèle ASP.NET Core utilise par
+// défaut la culture du système, qui peut attendre une virgule (ex: fr-FR). Sans ça, un formulaire
+// admin posté depuis une machine en culture française tronquerait silencieusement "19.99" à 0.
+var invariantCulture = new CultureInfo("en-US");
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(invariantCulture),
+    SupportedCultures = [invariantCulture],
+    SupportedUICultures = [invariantCulture],
+});
+
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Products}/{action=Index}/{id?}")
+    .WithStaticAssets();
 
 app.MapControllerRoute(
     name: "default",

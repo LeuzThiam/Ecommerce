@@ -7,4 +7,5 @@ public sealed record ProductSearch(
     decimal? MaximumPrice,
     string Sort = "name",
     int Page = 1,
-    int PageSize = 20);
+    int PageSize = 20,
+    bool IncludeInactive = false);
