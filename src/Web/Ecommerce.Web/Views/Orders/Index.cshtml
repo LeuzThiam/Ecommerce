@@ -1,0 +1,37 @@
+@model IReadOnlyList<OrderDto>
+@{
+    ViewData["Title"] = "Mes commandes";
+}
+
+<h1>Mes commandes</h1>
+
+@if (Model.Count == 0)
+{
+    <p>Vous n'avez aucune commande pour l'instant.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Commande</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th>Total</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in Model)
+            {
+                <tr>
+                    <td>@order.Id</td>
+                    <td>@order.CreatedAtUtc.ToString("dd/MM/yyyy")</td>
+                    <td>@order.Status</td>
+                    <td>@order.Total.ToString("C")</td>
+                    <td><a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id">Détails</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
