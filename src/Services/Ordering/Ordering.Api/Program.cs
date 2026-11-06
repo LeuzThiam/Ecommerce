@@ -44,6 +44,12 @@ builder.Services.AddScoped<IPaymentGateway, StripePaymentGateway>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
+// Licence Community QuestPDF — gratuite, requise par la bibliothèque dès le premier appel de
+// génération, peu importe l'environnement.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+builder.Services.AddScoped<IInvoicePdfGenerator, QuestPdfInvoiceGenerator>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+
 // Même clé de signature que Identity.Api — c'est ce qui permet à ce service de valider
 // l'identité d'un appelant sans dépendre directement d'Identity.Api à l'exécution.
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
@@ -188,6 +194,28 @@ app.MapGet("/api/ordering/orders/{orderId:guid}", async (
 })
 .RequireAuthorization()
 .WithName("GetOrder");
+
+app.MapGet("/api/ordering/orders/{orderId:guid}/invoice", async (
+    Guid orderId,
+    ClaimsPrincipal principal,
+    IOrderRepository orderRepository,
+    IInvoiceService invoiceService,
+    CancellationToken cancellationToken) =>
+{
+    var order = await orderRepository.GetByIdAsync(orderId, cancellationToken);
+
+    // Même règle de confidentialité que GetOrder : 404, jamais 403, sur une commande qui n'est
+    // pas la sienne.
+    if (order is null || order.CustomerId != GetCustomerId(principal))
+    {
+        return Results.NotFound();
+    }
+
+    var pdfBytes = invoiceService.GenerateInvoice(order);
+    return Results.File(pdfBytes, "application/pdf", $"facture-{order.Id}.pdf");
+})
+.RequireAuthorization()
+.WithName("DownloadInvoice");
 
 app.MapPost("/api/ordering/orders/{orderId:guid}/refund", async (
     Guid orderId,
