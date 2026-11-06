@@ -37,4 +37,23 @@ public class PaymentTests
 
         Assert.Throws<DomainException>(() => payment.MarkAsSucceeded());
     }
+
+    [Fact]
+    public void MarkAsRefunded_WhenSucceeded_ChangesStatusToRefunded()
+    {
+        var payment = Payment.Create(Guid.NewGuid(), 50m);
+        payment.MarkAsSucceeded();
+
+        payment.MarkAsRefunded();
+
+        Assert.Equal(PaymentStatus.Refunded, payment.Status);
+    }
+
+    [Fact]
+    public void MarkAsRefunded_WhenPending_ThrowsDomainException()
+    {
+        var payment = Payment.Create(Guid.NewGuid(), 50m);
+
+        Assert.Throws<DomainException>(() => payment.MarkAsRefunded());
+    }
 }

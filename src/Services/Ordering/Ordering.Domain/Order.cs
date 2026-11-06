@@ -58,4 +58,14 @@ public sealed class Order
 
         Status = OrderStatus.Cancelled;
     }
+
+    public void Refund()
+    {
+        if (Status != OrderStatus.Paid)
+        {
+            throw new DomainException("Seule une commande payée peut être remboursée.");
+        }
+
+        Status = OrderStatus.Refunded;
+    }
 }

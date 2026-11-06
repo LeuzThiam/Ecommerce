@@ -82,4 +82,27 @@ public sealed class PaymentService(
         await paymentRepository.SaveChangesAsync(cancellationToken);
         await orderRepository.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task RefundAsync(Guid orderId, CancellationToken cancellationToken)
+    {
+        var order = await orderRepository.GetByIdAsync(orderId, cancellationToken)
+            ?? throw new DomainException("Cette commande n'existe pas.");
+
+        if (order.Status != OrderStatus.Paid)
+        {
+            throw new DomainException("Cette commande n'est pas payée, elle ne peut pas être remboursée.");
+        }
+
+        var payments = await paymentRepository.GetByOrderIdAsync(orderId, cancellationToken);
+        var succeededPayment = payments.FirstOrDefault(p => p.Status == PaymentStatus.Succeeded)
+            ?? throw new DomainException("Aucun paiement réussi n'a été trouvé pour cette commande.");
+
+        await paymentGateway.RefundAsync(succeededPayment.ProviderPaymentId!, succeededPayment.Amount, cancellationToken);
+
+        succeededPayment.MarkAsRefunded();
+        order.Refund();
+
+        await paymentRepository.SaveChangesAsync(cancellationToken);
+        await orderRepository.SaveChangesAsync(cancellationToken);
+    }
 }

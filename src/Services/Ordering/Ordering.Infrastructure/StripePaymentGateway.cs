@@ -59,4 +59,22 @@ public sealed class StripePaymentGateway : IPaymentGateway
             return null;
         }
     }
+
+    public async Task<RefundResult> RefundAsync(string providerPaymentId, decimal amount, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_options.SecretKey))
+        {
+            throw new InvalidOperationException(
+                "Stripe:SecretKey n'est pas configuré — impossible de rembourser sans clé de test Stripe.");
+        }
+
+        var service = new RefundService();
+        var refund = await service.CreateAsync(new RefundCreateOptions
+        {
+            PaymentIntent = providerPaymentId,
+            Amount = (long)(amount * 100),
+        }, cancellationToken: cancellationToken);
+
+        return new RefundResult(refund.Id);
+    }
 }

@@ -27,4 +27,9 @@ public sealed class FakePaymentGateway : IPaymentGateway
         var parts = payload.Split('|');
         return new WebhookEvent(parts[0], parts[1], parts[2]);
     }
+
+    public Task<RefundResult> RefundAsync(string providerPaymentId, decimal amount, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new RefundResult($"re_fake_{++_counter}"));
+    }
 }

@@ -18,6 +18,14 @@ public sealed class PaymentRepository(ApplicationDbContext dbContext) : IPayment
             .FirstOrDefaultAsync(p => p.ProviderPaymentId == providerPaymentId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Payment>> GetByOrderIdAsync(Guid orderId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Payments
+            .Where(p => p.OrderId == orderId)
+            .OrderBy(p => p.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> HasProcessedEventAsync(string eventId, CancellationToken cancellationToken)
     {
         return await dbContext.ProcessedWebhookEvents.AnyAsync(e => e.EventId == eventId, cancellationToken);
