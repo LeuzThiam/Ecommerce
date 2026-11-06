@@ -26,9 +26,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public FakeStockReservationClient StockClient { get; } = new();
     public FakePaymentGateway PaymentGateway { get; } = new();
 
-    public string GenerateToken(Guid customerId)
+    public string GenerateToken(Guid customerId, params string[] roles)
     {
         var claims = new List<Claim> { new(JwtRegisteredClaimNames.Sub, customerId.ToString()) };
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

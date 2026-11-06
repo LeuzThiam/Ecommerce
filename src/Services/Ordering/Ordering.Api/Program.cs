@@ -66,7 +66,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("AdminOnly", policy => policy.RequireRole("Administrator"));
 
 var app = builder.Build();
 
@@ -161,7 +162,7 @@ app.MapGet("/api/ordering/orders", async (
     CancellationToken cancellationToken) =>
 {
     var orders = await orderRepository.GetByCustomerIdAsync(GetCustomerId(principal), cancellationToken);
-    return Results.Ok(orders.Select(ToOrderDto));
+    return Results.Ok(orders.Select(o => ToOrderDto(o)));
 })
 .RequireAuthorization()
 .WithName("GetOrderHistory");
@@ -170,6 +171,7 @@ app.MapGet("/api/ordering/orders/{orderId:guid}", async (
     Guid orderId,
     ClaimsPrincipal principal,
     IOrderRepository orderRepository,
+    IPaymentRepository paymentRepository,
     CancellationToken cancellationToken) =>
 {
     var order = await orderRepository.GetByIdAsync(orderId, cancellationToken);
@@ -181,10 +183,22 @@ app.MapGet("/api/ordering/orders/{orderId:guid}", async (
         return Results.NotFound();
     }
 
-    return Results.Ok(ToOrderDto(order));
+    var payments = await paymentRepository.GetByOrderIdAsync(orderId, cancellationToken);
+    return Results.Ok(ToOrderDto(order, payments));
 })
 .RequireAuthorization()
 .WithName("GetOrder");
+
+app.MapPost("/api/ordering/orders/{orderId:guid}/refund", async (
+    Guid orderId,
+    IPaymentService paymentService,
+    CancellationToken cancellationToken) =>
+{
+    await paymentService.RefundAsync(orderId, cancellationToken);
+    return Results.NoContent();
+})
+.RequireAuthorization("AdminOnly")
+.WithName("RefundOrder");
 
 app.MapPost("/api/ordering/orders/{orderId}/payment-intent", async (
     Guid orderId,
@@ -217,13 +231,17 @@ app.Run();
 static Guid GetCustomerId(ClaimsPrincipal principal) =>
     Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-static OrderDto ToOrderDto(Order order)
+static OrderDto ToOrderDto(Order order, IReadOnlyList<Payment>? payments = null)
 {
     var items = order.Items
         .Select(i => new OrderItemDto(i.ProductId, i.ProductName, i.UnitPrice, i.Quantity, i.Subtotal))
         .ToList();
 
-    return new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), items, order.Total, order.CreatedAtUtc);
+    var paymentAttempts = payments?
+        .Select(p => new PaymentAttemptDto(p.Id, p.Status.ToString(), p.CreatedAtUtc))
+        .ToList();
+
+    return new OrderDto(order.Id, order.CustomerId, order.Status.ToString(), items, order.Total, order.CreatedAtUtc, paymentAttempts);
 }
 
 record AddCartItemRequest(Guid ProductId, int Quantity);

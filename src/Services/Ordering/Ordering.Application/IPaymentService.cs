@@ -6,4 +6,5 @@ public interface IPaymentService
 {
     Task<PaymentIntentDto> CreatePaymentIntentAsync(Guid orderId, CancellationToken cancellationToken);
     Task HandleWebhookAsync(string payload, string signatureHeader, CancellationToken cancellationToken);
+    Task RefundAsync(Guid orderId, CancellationToken cancellationToken);
 }

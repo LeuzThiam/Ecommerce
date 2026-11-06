@@ -31,4 +31,25 @@ public class OrderTests
 
         Assert.Throws<DomainException>(() => Order.Create(Guid.Empty, [item]));
     }
+
+    [Fact]
+    public void Refund_WhenPaid_ChangesStatusToRefunded()
+    {
+        var item = OrderItem.Create(Guid.NewGuid(), "Produit", 10m, 1);
+        var order = Order.Create(Guid.NewGuid(), [item]);
+        order.MarkAsPaid();
+
+        order.Refund();
+
+        Assert.Equal(OrderStatus.Refunded, order.Status);
+    }
+
+    [Fact]
+    public void Refund_WhenNotPaid_ThrowsDomainException()
+    {
+        var item = OrderItem.Create(Guid.NewGuid(), "Produit", 10m, 1);
+        var order = Order.Create(Guid.NewGuid(), [item]);
+
+        Assert.Throws<DomainException>(() => order.Refund());
+    }
 }

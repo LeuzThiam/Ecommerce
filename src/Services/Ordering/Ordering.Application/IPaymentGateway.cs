@@ -11,8 +11,12 @@ public interface IPaymentGateway
     // C'est la seule façon d'obtenir un WebhookEvent — impossible de forger une confirmation
     // de paiement sans passer la vérification de signature.
     WebhookEvent? ParseWebhookEvent(string payload, string signatureHeader);
+
+    Task<RefundResult> RefundAsync(string providerPaymentId, decimal amount, CancellationToken cancellationToken);
 }
 
 public sealed record PaymentIntentResult(string ProviderPaymentId, string ClientSecret);
 
 public sealed record WebhookEvent(string EventId, string Type, string ProviderPaymentId);
+
+public sealed record RefundResult(string ProviderRefundId);

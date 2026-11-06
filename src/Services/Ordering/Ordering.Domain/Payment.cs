@@ -64,4 +64,14 @@ public sealed class Payment
 
         Status = PaymentStatus.Failed;
     }
+
+    public void MarkAsRefunded()
+    {
+        if (Status != PaymentStatus.Succeeded)
+        {
+            throw new DomainException("Seul un paiement réussi peut être remboursé.");
+        }
+
+        Status = PaymentStatus.Refunded;
+    }
 }
