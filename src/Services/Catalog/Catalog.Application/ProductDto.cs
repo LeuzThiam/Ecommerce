@@ -10,4 +10,5 @@ public sealed record ProductDto(
     int Stock,
     Guid CategoryId,
     bool IsActive,
+    string? ImageUrl = null,
     IReadOnlyList<ProductVariantDto>? Variants = null);

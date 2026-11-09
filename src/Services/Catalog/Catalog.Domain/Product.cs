@@ -15,9 +15,10 @@ public sealed class Product
     public int Stock { get; private set; }
     public Guid CategoryId { get; private set; }
     public bool IsActive { get; private set; }
+    public string? ImageUrl { get; private set; }
     public IReadOnlyList<ProductVariant> Variants => _variants;
 
-    private Product(Guid id, string name, string slug, decimal price, int stock, Guid categoryId, bool isActive)
+    private Product(Guid id, string name, string slug, decimal price, int stock, Guid categoryId, bool isActive, string? imageUrl)
     {
         Id = id;
         Name = name;
@@ -26,16 +27,17 @@ public sealed class Product
         Stock = stock;
         CategoryId = categoryId;
         IsActive = isActive;
+        ImageUrl = imageUrl;
     }
 
-    public static Product Create(string name, decimal price, int stock, Guid categoryId)
+    public static Product Create(string name, decimal price, int stock, Guid categoryId, string? imageUrl = null)
     {
         Validate(name, price, stock);
 
-        return new Product(Guid.NewGuid(), name.Trim(), GenerateSlug(name), price, stock, categoryId, isActive: true);
+        return new Product(Guid.NewGuid(), name.Trim(), GenerateSlug(name), price, stock, categoryId, isActive: true, imageUrl);
     }
 
-    public void Update(string name, decimal price, int stock, Guid categoryId)
+    public void Update(string name, decimal price, int stock, Guid categoryId, string? imageUrl = null)
     {
         Validate(name, price, stock);
 
@@ -44,6 +46,7 @@ public sealed class Product
         Price = price;
         Stock = stock;
         CategoryId = categoryId;
+        ImageUrl = imageUrl;
     }
 
     // Désactivation logique seulement - jamais de suppression physique. Un produit déjà commandé

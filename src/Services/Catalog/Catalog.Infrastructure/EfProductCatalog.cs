@@ -47,7 +47,7 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
         var items = await query
             .Skip((search.Page - 1) * search.PageSize)
             .Take(search.PageSize)
-            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive))
+            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive, p.ImageUrl))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProductDto>(items, search.Page, search.PageSize, totalCount);
@@ -65,7 +65,7 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
             .AsNoTracking()
             .Where(p => p.Slug == slug && p.IsActive)
             .Select(p => new ProductDto(
-                p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive,
+                p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive, p.ImageUrl,
                 p.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -80,7 +80,7 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
 
         return await query
             .Select(p => new ProductDto(
-                p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive,
+                p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive, p.ImageUrl,
                 p.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
     }

@@ -161,7 +161,7 @@ app.MapPost("/api/catalog/products", async (
     IProductAdminService products,
     CancellationToken cancellationToken) =>
 {
-    var product = await products.CreateAsync(request.Name, request.Price, request.Stock, request.CategoryId, cancellationToken);
+    var product = await products.CreateAsync(request.Name, request.Price, request.Stock, request.CategoryId, request.ImageUrl, cancellationToken);
     return Results.Created($"/api/catalog/products/{product.Slug}", product);
 })
 .RequireAuthorization("AdminOnly");
@@ -172,7 +172,7 @@ app.MapPut("/api/catalog/products/{id:guid}", async (
     IProductAdminService products,
     CancellationToken cancellationToken) =>
 {
-    var product = await products.UpdateAsync(id, request.Name, request.Price, request.Stock, request.CategoryId, cancellationToken);
+    var product = await products.UpdateAsync(id, request.Name, request.Price, request.Stock, request.CategoryId, request.ImageUrl, cancellationToken);
     return product is null ? Results.NotFound() : Results.Ok(product);
 })
 .RequireAuthorization("AdminOnly");
@@ -268,8 +268,8 @@ app.Run();
 
 record CreateCategoryRequest(string Name);
 record UpdateCategoryRequest(string Name);
-record CreateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId);
-record UpdateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId);
+record CreateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId, string? ImageUrl = null);
+record UpdateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId, string? ImageUrl = null);
 record CreateProductVariantRequest(string Name, decimal Price, int Stock);
 record ReserveStockRequest(Guid ProductId, int Quantity);
 

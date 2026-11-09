@@ -7,16 +7,16 @@ namespace Catalog.Infrastructure;
 
 public sealed class ProductAdminService(ApplicationDbContext dbContext) : IProductAdminService
 {
-    public async Task<ProductDto> CreateAsync(string name, decimal price, int stock, Guid categoryId, CancellationToken cancellationToken)
+    public async Task<ProductDto> CreateAsync(string name, decimal price, int stock, Guid categoryId, string? imageUrl, CancellationToken cancellationToken)
     {
-        var product = Product.Create(name, price, stock, categoryId);
+        var product = Product.Create(name, price, stock, categoryId, imageUrl);
         await dbContext.Products.AddAsync(product, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ToDto(product);
     }
 
-    public async Task<ProductDto?> UpdateAsync(Guid id, string name, decimal price, int stock, Guid categoryId, CancellationToken cancellationToken)
+    public async Task<ProductDto?> UpdateAsync(Guid id, string name, decimal price, int stock, Guid categoryId, string? imageUrl, CancellationToken cancellationToken)
     {
         var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         if (product is null)
@@ -24,7 +24,7 @@ public sealed class ProductAdminService(ApplicationDbContext dbContext) : IProdu
             return null;
         }
 
-        product.Update(name, price, stock, categoryId);
+        product.Update(name, price, stock, categoryId, imageUrl);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ToDto(product);
@@ -83,5 +83,6 @@ public sealed class ProductAdminService(ApplicationDbContext dbContext) : IProdu
             product.Stock,
             product.CategoryId,
             product.IsActive,
+            product.ImageUrl,
             product.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList());
 }

@@ -30,7 +30,7 @@
                         <label class="form-label">Stock</label>
                         <input type="number" name="stock" class="form-control" value="@Model.Stock" required />
                     </div>
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label class="form-label">Catégorie</label>
                         <select name="categoryId" class="form-select" required>
                             @foreach (var category in (IReadOnlyList<CategoryDto>)ViewBag.Categories)
@@ -38,6 +38,10 @@
                                 <option value="@category.Id" selected="@(category.Id == Model.CategoryId)">@category.Name</option>
                             }
                         </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">URL de l'image (optionnel)</label>
+                        <input type="url" name="imageUrl" class="form-control" value="@Model.ImageUrl" placeholder="https://..." />
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Enregistrer</button>
                 </form>

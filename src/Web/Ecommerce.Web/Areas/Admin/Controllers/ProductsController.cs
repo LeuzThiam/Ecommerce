@@ -28,11 +28,11 @@ public sealed class ProductsController(ICatalogApiClient catalogApiClient) : Con
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(string name, decimal price, int stock, Guid categoryId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(string name, decimal price, int stock, Guid categoryId, string? imageUrl, CancellationToken cancellationToken)
     {
         try
         {
-            await catalogApiClient.CreateProductAsync(GetAccessToken(), name, price, stock, categoryId, cancellationToken);
+            await catalogApiClient.CreateProductAsync(GetAccessToken(), name, price, stock, categoryId, imageUrl, cancellationToken);
             TempData["Success"] = "Produit créé.";
             return RedirectToAction(nameof(Index));
         }
@@ -58,11 +58,11 @@ public sealed class ProductsController(ICatalogApiClient catalogApiClient) : Con
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(Guid id, string name, decimal price, int stock, Guid categoryId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Edit(Guid id, string name, decimal price, int stock, Guid categoryId, string? imageUrl, CancellationToken cancellationToken)
     {
         try
         {
-            var product = await catalogApiClient.UpdateProductAsync(GetAccessToken(), id, name, price, stock, categoryId, cancellationToken);
+            var product = await catalogApiClient.UpdateProductAsync(GetAccessToken(), id, name, price, stock, categoryId, imageUrl, cancellationToken);
             if (product is null)
             {
                 return NotFound();
@@ -75,7 +75,7 @@ public sealed class ProductsController(ICatalogApiClient catalogApiClient) : Con
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             ViewBag.Categories = await catalogApiClient.GetCategoriesAsync(cancellationToken);
-            return View(new ProductDto(id, name, string.Empty, price, stock, categoryId));
+            return View(new ProductDto(id, name, string.Empty, price, stock, categoryId, ImageUrl: imageUrl));
         }
     }
 
