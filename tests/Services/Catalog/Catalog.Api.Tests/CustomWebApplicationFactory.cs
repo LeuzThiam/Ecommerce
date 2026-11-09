@@ -1,12 +1,14 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Catalog.Application;
 using Catalog.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Catalog.Api.Tests;
@@ -30,6 +32,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     // SQLite de supprimer la base en mémoire dès que la dernière connexion se ferme.
     private readonly string _connectionString = $"Data Source=file:catalog-tests-{Guid.NewGuid():N}?mode=memory&cache=shared";
     private SqliteConnection? _keepAliveConnection;
+
+    public FakeDummyProductImportSource ImportSource { get; } = new();
 
     public string GenerateToken(params string[] roles)
     {
@@ -71,6 +75,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             }
 
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(_connectionString));
+
+            services.RemoveAll<IDummyProductImportSource>();
+            services.AddSingleton<IDummyProductImportSource>(ImportSource);
 
             using var scope = services.BuildServiceProvider().CreateScope();
             scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.EnsureCreated();

@@ -1,0 +1,90 @@
+{
+  "categories": [
+    { "name": "Informatique" },
+    { "name": "Audio" },
+    { "name": "Vêtements" },
+    { "name": "Maison & Cuisine" },
+    { "name": "Livres" }
+  ],
+  "products": [
+    {
+      "name": "Clavier mécanique RGB",
+      "category": "Informatique",
+      "price": 89.99,
+      "stock": 24,
+      "variants": [
+        { "name": "Switches rouges (linéaires)", "price": 89.99, "stock": 14 },
+        { "name": "Switches bleus (clicky)", "price": 94.99, "stock": 10 }
+      ]
+    },
+    {
+      "name": "Souris sans fil ergonomique",
+      "category": "Informatique",
+      "price": 34.50,
+      "stock": 40
+    },
+    {
+      "name": "Écran 27\" 144Hz",
+      "category": "Informatique",
+      "price": 279.00,
+      "stock": 8
+    },
+    {
+      "name": "Casque audio Bluetooth",
+      "category": "Audio",
+      "price": 59.99,
+      "stock": 30,
+      "variants": [
+        { "name": "Noir", "price": 59.99, "stock": 18 },
+        { "name": "Blanc", "price": 59.99, "stock": 12 }
+      ]
+    },
+    {
+      "name": "Enceinte portable étanche",
+      "category": "Audio",
+      "price": 44.90,
+      "stock": 22
+    },
+    {
+      "name": "T-shirt coton bio",
+      "category": "Vêtements",
+      "price": 19.99,
+      "stock": 0,
+      "variants": [
+        { "name": "S", "price": 19.99, "stock": 0 },
+        { "name": "M", "price": 19.99, "stock": 15 },
+        { "name": "L", "price": 21.99, "stock": 9 }
+      ]
+    },
+    {
+      "name": "Veste imperméable",
+      "category": "Vêtements",
+      "price": 74.00,
+      "stock": 12
+    },
+    {
+      "name": "Cafetière à piston",
+      "category": "Maison & Cuisine",
+      "price": 29.90,
+      "stock": 17
+    },
+    {
+      "name": "Set de couteaux de cuisine",
+      "category": "Maison & Cuisine",
+      "price": 54.50,
+      "stock": 6
+    },
+    {
+      "name": "Roman : L'Ombre du Vent",
+      "category": "Livres",
+      "price": 12.90,
+      "stock": 35
+    },
+    {
+      "name": "Guide de voyage : Japon",
+      "category": "Livres",
+      "price": 17.50,
+      "stock": 0
+    }
+  ]
+}
