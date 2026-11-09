@@ -3,23 +3,65 @@
     ViewData["Title"] = Model.Name;
 }
 
-<a asp-controller="Catalog" asp-action="Index">&larr; Retour au catalogue</a>
+<div class="page-container py-5">
+    <a asp-controller="Catalog" asp-action="Index" class="d-inline-block mb-4 small">&larr; Retour au catalogue</a>
 
-<h1>@Model.Name</h1>
-<p class="fs-4">@Model.Price.ToString("C")</p>
-<p class="text-muted">
-    @(Model.Stock > 0 ? $"{Model.Stock} en stock" : "Rupture de stock")
-</p>
+    <div class="row g-4 g-lg-5">
+        <div class="col-md-5">
+            <div class="product-card__media" style="aspect-ratio: 1; border-radius: var(--radius); font-size: 4rem;">
+                @Model.Name.Substring(0, 1).ToUpperInvariant()
+            </div>
+        </div>
+        <div class="col-md-7">
+            <h1 class="mb-2">@Model.Name</h1>
+            <p class="fs-3 fw-bold mb-3" style="font-family: var(--font-display);">@Model.Price.ToString("C")</p>
 
-@if (Model.Stock > 0)
-{
-    <form asp-controller="Cart" asp-action="Add" method="post" class="row g-2">
-        <input type="hidden" name="productId" value="@Model.Id" />
-        <div class="col-auto">
-            <input type="number" name="quantity" value="1" min="1" max="@Model.Stock" class="form-control" />
+            @if (Model.Stock > 0)
+            {
+                <span class="status-badge status-badge--paid mb-4 d-inline-flex">@Model.Stock en stock</span>
+            }
+            else
+            {
+                <span class="status-badge status-badge--cancelled mb-4 d-inline-flex">Rupture de stock</span>
+            }
+
+            @if (Model.Variants is { Count: > 0 })
+            {
+                <div class="mb-4">
+                    <span class="section-label d-block mb-2">Variantes disponibles</span>
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var variant in Model.Variants)
+                        {
+                            <div class="d-flex justify-content-between align-items-center border rounded-2 px-3 py-2" style="border-color: var(--color-border) !important;">
+                                <span>@variant.Name</span>
+                                <span class="d-flex align-items-center gap-3">
+                                    <span class="fw-semibold">@variant.Price.ToString("C")</span>
+                                    @if (variant.Stock > 0)
+                                    {
+                                        <span class="text-muted small">@variant.Stock en stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Rupture</span>
+                                    }
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (Model.Stock > 0)
+            {
+                <form asp-controller="Cart" asp-action="Add" method="post" class="d-flex gap-2 align-items-end">
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <div>
+                        <label class="form-label">Quantité</label>
+                        <input type="number" name="quantity" value="1" min="1" max="@Model.Stock" class="form-control" style="width: 6rem;" />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">Ajouter au panier</button>
+                </form>
+            }
         </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Ajouter au panier</button>
-        </div>
-    </form>
-}
+    </div>
+</div>

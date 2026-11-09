@@ -2,6 +2,11 @@
     ViewData["Title"] = "Service indisponible";
 }
 
-<h1>Service temporairement indisponible</h1>
-<p>Nous ne parvenons pas à contacter un de nos services pour le moment. Merci de réessayer dans quelques instants.</p>
-<a asp-controller="Home" asp-action="Index" class="btn btn-primary">Retour à l'accueil</a>
+<div class="page-container py-5" style="max-width: 560px;">
+    <div class="empty-state">
+        <span class="status-badge status-badge--pending mb-3 d-inline-flex">Indisponible</span>
+        <h1 class="h3 mb-2">Service temporairement indisponible</h1>
+        <p class="mb-4">Nous ne parvenons pas à contacter un de nos services pour le moment. Merci de réessayer dans quelques instants.</p>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Retour à l'accueil</a>
+    </div>
+</div>

@@ -2,6 +2,12 @@
     ViewData["Title"] = "Commande confirmée";
 }
 
-<h1>Merci pour votre commande !</h1>
-<p>Votre commande <strong>@ViewBag.OrderId</strong> a bien été enregistrée.</p>
-<a asp-controller="Catalog" asp-action="Index" class="btn btn-primary">Continuer vos achats</a>
+<div class="page-container py-5">
+    <div class="empty-state" style="max-width: 480px; margin-inline: auto;">
+        <div class="status-badge status-badge--paid mb-3 d-inline-flex">Commande enregistrée</div>
+        <h1 class="h2 mb-2">Merci pour votre commande !</h1>
+        <p class="mb-1">Référence</p>
+        <p class="fw-semibold text-break mb-4" style="color: var(--color-ink);">@ViewBag.OrderId</p>
+        <a asp-controller="Catalog" asp-action="Index" class="btn btn-primary">Continuer vos achats</a>
+    </div>
+</div>

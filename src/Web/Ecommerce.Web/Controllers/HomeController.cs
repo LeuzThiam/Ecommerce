@@ -1,14 +1,18 @@
 using System.Diagnostics;
+using Ecommerce.Web.Clients;
 using Microsoft.AspNetCore.Mvc;
 using Ecommerce.Web.Models;
 
 namespace Ecommerce.Web.Controllers;
 
-public class HomeController : Controller
+public class HomeController(ICatalogApiClient catalogApiClient) : Controller
 {
-    public IActionResult Index()
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        return View();
+        var featured = await catalogApiClient.SearchProductsAsync(null, null, 1, cancellationToken);
+        ViewBag.Categories = await catalogApiClient.GetCategoriesAsync(cancellationToken);
+
+        return View(featured);
     }
 
     public IActionResult Privacy()

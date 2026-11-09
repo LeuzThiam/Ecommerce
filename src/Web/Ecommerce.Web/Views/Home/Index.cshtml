@@ -1,8 +1,56 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model PagedResult<ProductDto>
+@{
+    ViewData["Title"] = "Accueil";
+    var categories = (IReadOnlyList<CategoryDto>)ViewBag.Categories;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<section class="hero">
+    <div class="page-container">
+        <span class="section-label">Nouveau catalogue</span>
+        <h1>Des produits sélectionnés, une expérience d'achat simple.</h1>
+        <p>Parcourez notre catalogue, trouvez ce qu'il vous faut et suivez vos commandes en toute transparence.</p>
+        <a asp-controller="Catalog" asp-action="Index" class="btn btn-primary btn-lg">Voir le catalogue</a>
+    </div>
+</section>
+
+<div class="page-container py-5">
+    @if (categories.Count > 0)
+    {
+        <div class="d-flex flex-wrap gap-2 mb-5">
+            @foreach (var category in categories)
+            {
+                <a asp-controller="Catalog" asp-action="Index" asp-route-categoryId="@category.Id"
+                   class="btn btn-outline-primary btn-sm">@category.Name</a>
+            }
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-baseline mb-3">
+        <h2 class="h4 mb-0">Produits en vedette</h2>
+        <a asp-controller="Catalog" asp-action="Index" class="small">Voir tout &rarr;</a>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-state">
+            <p>Le catalogue est vide pour l'instant.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4">
+            @foreach (var product in Model.Items.Take(8))
+            {
+                <div class="col">
+                    <a asp-controller="Catalog" asp-action="Product" asp-route-slug="@product.Slug" class="product-card text-decoration-none">
+                        <div class="product-card__media">@product.Name.Substring(0, 1).ToUpperInvariant()</div>
+                        <div class="product-card__body">
+                            <span class="product-card__name">@product.Name</span>
+                            <span class="product-card__price">@product.Price.ToString("C")</span>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    }
 </div>
