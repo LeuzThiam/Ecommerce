@@ -50,7 +50,7 @@ public sealed class ProductImportService(
                 categories[external.CategoryName] = categoryId;
             }
 
-            await productAdminService.CreateAsync(external.Name, external.Price, external.Stock, categoryId, cancellationToken);
+            await productAdminService.CreateAsync(external.Name, external.Price, external.Stock, categoryId, external.ImageUrl, cancellationToken);
             existingNames.Add(external.Name);
             imported++;
         }

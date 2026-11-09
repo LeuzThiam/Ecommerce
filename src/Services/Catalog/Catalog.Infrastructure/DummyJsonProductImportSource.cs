@@ -21,7 +21,7 @@ public sealed class DummyJsonProductImportSource(HttpClient httpClient) : IDummy
         }
 
         return payload.Products
-            .Select(p => new ExternalProductDto(p.Title, p.Price, p.Stock, p.Category))
+            .Select(p => new ExternalProductDto(p.Title, p.Price, p.Stock, p.Category, p.Thumbnail))
             .ToList();
     }
 
@@ -31,5 +31,6 @@ public sealed class DummyJsonProductImportSource(HttpClient httpClient) : IDummy
         [property: JsonPropertyName("title")] string Title,
         [property: JsonPropertyName("price")] decimal Price,
         [property: JsonPropertyName("stock")] int Stock,
-        [property: JsonPropertyName("category")] string Category);
+        [property: JsonPropertyName("category")] string Category,
+        [property: JsonPropertyName("thumbnail")] string? Thumbnail);
 }
