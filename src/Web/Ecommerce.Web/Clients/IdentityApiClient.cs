@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Ecommerce.Web.Models;
@@ -86,6 +87,40 @@ public sealed class IdentityApiClient(HttpClient httpClient) : IIdentityApiClien
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<IReadOnlyList<UserAdminDto>> GetAllUsersAdminAsync(string accessToken, CancellationToken cancellationToken)
+    {
+        using var request = CreateAuthenticatedRequest(HttpMethod.Get, "/api/identity/admin/users", accessToken);
+        var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var users = await response.Content.ReadFromJsonAsync<List<UserAdminDto>>(cancellationToken);
+        return users ?? [];
+    }
+
+    public async Task PromoteUserAsync(string accessToken, Guid userId, CancellationToken cancellationToken)
+    {
+        using var request = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/identity/admin/users/{userId}/promote", accessToken);
+        var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            throw new IdentityApiException(await ReadErrorMessageAsync(response, cancellationToken));
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task DemoteUserAsync(string accessToken, Guid userId, CancellationToken cancellationToken)
+    {
+        using var request = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/identity/admin/users/{userId}/demote", accessToken);
+        var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            throw new IdentityApiException(await ReadErrorMessageAsync(response, cancellationToken));
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
     // HttpClient.DefaultRequestHeaders est mutable et partagé entre requêtes concurrentes via le
     // pool du HttpClientFactory - on pose donc l'en-tête Authorization par requête plutôt que dessus.
     private static HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string uri, string accessToken)
@@ -94,6 +129,16 @@ public sealed class IdentityApiClient(HttpClient httpClient) : IIdentityApiClien
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         return request;
     }
+
+    // Depuis l'Issue #21, Ordering.Api traduit les DomainException en Problem Details (RFC 7807) -
+    // Identity.Api fait de même (voir son UseExceptionHandler), d'où le même format ici.
+    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>(cancellationToken);
+        return problem?.Detail ?? "La requête a été refusée par le service d'identité.";
+    }
+
+    private sealed record ProblemDetailsResponse(string Detail);
 
     private sealed record LoginResponse(string AccessToken);
 

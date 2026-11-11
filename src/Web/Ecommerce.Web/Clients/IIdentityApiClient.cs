@@ -26,4 +26,10 @@ public interface IIdentityApiClient
         string postalCode,
         string country,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<UserAdminDto>> GetAllUsersAdminAsync(string accessToken, CancellationToken cancellationToken);
+
+    Task PromoteUserAsync(string accessToken, Guid userId, CancellationToken cancellationToken);
+
+    Task DemoteUserAsync(string accessToken, Guid userId, CancellationToken cancellationToken);
 }

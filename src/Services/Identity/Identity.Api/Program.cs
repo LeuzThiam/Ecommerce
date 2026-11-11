@@ -449,6 +449,86 @@ app.MapPost("/api/identity/addresses/{addressId:guid}/default", async (
 .RequireAuthorization()
 .WithName("SetDefaultAddress");
 
+// Aucune UI ni endpoint n'existait pour voir qui est administrateur ou le devenir - la seule
+// façon de promouvoir un compte était une requête SQL manuelle directement en base. Ces trois
+// endpoints couvrent uniquement le rôle Administrator (le seul concerné) : Client reste attribué
+// une fois pour toutes à l'inscription et n'est jamais retiré.
+app.MapGet("/api/identity/admin/users", async (
+    IUserRepository userRepository,
+    UserManager<ApplicationUser> userManager,
+    CancellationToken cancellationToken) =>
+{
+    var domainUsers = await userRepository.GetAllAsync(cancellationToken);
+
+    var result = new List<UserAdminDto>();
+    foreach (var domainUser in domainUsers)
+    {
+        var appUser = await userManager.FindByIdAsync(domainUser.Id.ToString());
+        var roles = appUser is null ? [] : await userManager.GetRolesAsync(appUser);
+        result.Add(new UserAdminDto(
+            domainUser.Id,
+            domainUser.Email.Value,
+            domainUser.DisplayName,
+            domainUser.CreatedAtUtc,
+            appUser?.EmailConfirmed ?? false,
+            [.. roles]));
+    }
+
+    return Results.Ok(result);
+})
+.RequireAuthorization("AdminOnly")
+.WithName("GetAllUsersAdmin");
+
+app.MapPost("/api/identity/admin/users/{userId:guid}/promote", async (
+    Guid userId,
+    UserManager<ApplicationUser> userManager,
+    CancellationToken cancellationToken) =>
+{
+    var appUser = await userManager.FindByIdAsync(userId.ToString());
+    if (appUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    if (!await userManager.IsInRoleAsync(appUser, "Administrator"))
+    {
+        await userManager.AddToRoleAsync(appUser, "Administrator");
+    }
+
+    return Results.NoContent();
+})
+.RequireAuthorization("AdminOnly")
+.WithName("PromoteUser");
+
+app.MapPost("/api/identity/admin/users/{userId:guid}/demote", async (
+    Guid userId,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    CancellationToken cancellationToken) =>
+{
+    // Un admin qui se retire lui-même ses propres droits pourrait verrouiller tout le monde hors
+    // de l'administration s'il est le seul admin restant - interdit sans exception.
+    if (userId == GetUserId(principal))
+    {
+        throw new DomainException("Vous ne pouvez pas retirer vos propres droits administrateur.");
+    }
+
+    var appUser = await userManager.FindByIdAsync(userId.ToString());
+    if (appUser is null)
+    {
+        return Results.NotFound();
+    }
+
+    if (await userManager.IsInRoleAsync(appUser, "Administrator"))
+    {
+        await userManager.RemoveFromRoleAsync(appUser, "Administrator");
+    }
+
+    return Results.NoContent();
+})
+.RequireAuthorization("AdminOnly")
+.WithName("DemoteUser");
+
 app.MapHealthChecks("/health/live");
 
 app.Run();

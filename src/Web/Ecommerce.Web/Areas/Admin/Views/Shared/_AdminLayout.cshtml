@@ -16,6 +16,8 @@
                    class="@(currentController == "Categories" ? "active" : "")">Catégories</a>
                 <a asp-area="Admin" asp-controller="Orders" asp-action="Index"
                    class="@(currentController == "Orders" ? "active" : "")">Commandes</a>
+                <a asp-area="Admin" asp-controller="Users" asp-action="Index"
+                   class="@(currentController == "Users" ? "active" : "")">Utilisateurs</a>
             </nav>
             <a asp-area="" asp-controller="Home" asp-action="Index" class="admin-sidebar-exit">Voir la boutique →</a>
         </aside>
