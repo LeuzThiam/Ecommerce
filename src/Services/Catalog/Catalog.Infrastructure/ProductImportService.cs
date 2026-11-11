@@ -14,13 +14,16 @@ public sealed class ProductImportService(
 
         // Dedoublonnage par nom (meme garde-fou que l'ancien DummyJsonService) - une recherche
         // incluant les produits desactives pour ne jamais reimporter un produit juste desactive.
+        // Dictionnaire (pas juste un HashSet) : un ré-import doit pouvoir retrouver l'Id d'un
+        // produit déjà présent pour y rattacher les attributs riches qu'un import plus ancien
+        // (avant l'ajout d'ImageUrl/ProductExternalDetails) n'avait pas pu capturer.
         var searchResult = await productCatalog.SearchAsync(
             new ProductSearch(Query: null, CategoryId: null, MinimumPrice: null, MaximumPrice: null,
                 Sort: "name", Page: 1, PageSize: 1000, IncludeInactive: true),
             cancellationToken);
-        var existingNames = searchResult.Items
-            .Select(p => p.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existingProducts = searchResult.Items
+            .GroupBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
 
         // dummyjson.com ne donne qu'un nom de categorie en texte libre ("smartphones", "beauty"...)
         // - contrairement a l'ancien DummyJsonService qui stockait ça tel quel dans une colonne
@@ -37,8 +40,12 @@ public sealed class ProductImportService(
 
         foreach (var external in externalProducts)
         {
-            if (existingNames.Contains(external.Name))
+            if (existingProducts.TryGetValue(external.Name, out var existingId))
             {
+                // Déjà importé - on rafraîchit quand même ses attributs riches, au cas où il
+                // viendrait d'un import plus ancien qui ne les capturait pas encore (c'est
+                // exactement le cas qui a motivé ce ré-import : des produits dummyjson sans image).
+                await productAdminService.SetExternalDetailsAsync(existingId, external, cancellationToken);
                 skipped++;
                 continue;
             }
@@ -50,8 +57,9 @@ public sealed class ProductImportService(
                 categories[external.CategoryName] = categoryId;
             }
 
-            await productAdminService.CreateAsync(external.Name, external.Price, external.Stock, categoryId, external.ImageUrl, cancellationToken);
-            existingNames.Add(external.Name);
+            var created = await productAdminService.CreateAsync(external.Name, external.Price, external.Stock, categoryId, external.ImageUrl, cancellationToken);
+            await productAdminService.SetExternalDetailsAsync(created.Id, external, cancellationToken);
+            existingProducts[external.Name] = created.Id;
             imported++;
         }
 

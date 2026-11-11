@@ -20,10 +20,34 @@ public sealed class DummyJsonProductImportSource(HttpClient httpClient) : IDummy
             return [];
         }
 
-        return payload.Products
-            .Select(p => new ExternalProductDto(p.Title, p.Price, p.Stock, p.Category, p.Thumbnail))
-            .ToList();
+        return payload.Products.Select(ToExternalProductDto).ToList();
     }
+
+    private static ExternalProductDto ToExternalProductDto(DummyJsonProduct p) => new(
+        p.Title,
+        p.Price,
+        p.Stock,
+        p.Category,
+        p.Thumbnail,
+        p.Description,
+        p.Brand,
+        p.Sku,
+        p.DiscountPercentage,
+        p.Rating,
+        p.Weight,
+        p.Dimensions?.Width,
+        p.Dimensions?.Height,
+        p.Dimensions?.Depth,
+        p.WarrantyInformation,
+        p.ShippingInformation,
+        p.AvailabilityStatus,
+        p.ReturnPolicy,
+        p.MinimumOrderQuantity,
+        p.Meta?.Barcode,
+        p.Meta?.QrCode,
+        p.Tags,
+        p.Images,
+        p.Reviews?.Select(r => new ExternalReviewDto(r.Rating, r.Comment, r.ReviewerName, r.ReviewerEmail, r.Date)).ToList());
 
     private sealed record DummyJsonResponse([property: JsonPropertyName("products")] List<DummyJsonProduct> Products);
 
@@ -32,5 +56,37 @@ public sealed class DummyJsonProductImportSource(HttpClient httpClient) : IDummy
         [property: JsonPropertyName("price")] decimal Price,
         [property: JsonPropertyName("stock")] int Stock,
         [property: JsonPropertyName("category")] string Category,
-        [property: JsonPropertyName("thumbnail")] string? Thumbnail);
+        [property: JsonPropertyName("thumbnail")] string? Thumbnail,
+        [property: JsonPropertyName("description")] string? Description,
+        [property: JsonPropertyName("brand")] string? Brand,
+        [property: JsonPropertyName("sku")] string? Sku,
+        [property: JsonPropertyName("discountPercentage")] decimal? DiscountPercentage,
+        [property: JsonPropertyName("rating")] decimal? Rating,
+        [property: JsonPropertyName("weight")] decimal? Weight,
+        [property: JsonPropertyName("dimensions")] DummyJsonDimensions? Dimensions,
+        [property: JsonPropertyName("warrantyInformation")] string? WarrantyInformation,
+        [property: JsonPropertyName("shippingInformation")] string? ShippingInformation,
+        [property: JsonPropertyName("availabilityStatus")] string? AvailabilityStatus,
+        [property: JsonPropertyName("returnPolicy")] string? ReturnPolicy,
+        [property: JsonPropertyName("minimumOrderQuantity")] int? MinimumOrderQuantity,
+        [property: JsonPropertyName("meta")] DummyJsonMeta? Meta,
+        [property: JsonPropertyName("tags")] List<string>? Tags,
+        [property: JsonPropertyName("images")] List<string>? Images,
+        [property: JsonPropertyName("reviews")] List<DummyJsonReview>? Reviews);
+
+    private sealed record DummyJsonDimensions(
+        [property: JsonPropertyName("width")] decimal? Width,
+        [property: JsonPropertyName("height")] decimal? Height,
+        [property: JsonPropertyName("depth")] decimal? Depth);
+
+    private sealed record DummyJsonMeta(
+        [property: JsonPropertyName("barcode")] string? Barcode,
+        [property: JsonPropertyName("qrCode")] string? QrCode);
+
+    private sealed record DummyJsonReview(
+        [property: JsonPropertyName("rating")] int Rating,
+        [property: JsonPropertyName("comment")] string Comment,
+        [property: JsonPropertyName("date")] DateTime Date,
+        [property: JsonPropertyName("reviewerName")] string ReviewerName,
+        [property: JsonPropertyName("reviewerEmail")] string ReviewerEmail);
 }
