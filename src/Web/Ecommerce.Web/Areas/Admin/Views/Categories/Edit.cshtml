@@ -3,24 +3,17 @@
     ViewData["Title"] = "Modifier la catégorie";
 }
 
-<div class="page-container py-5">
-    <div class="page-header">
-        <span class="section-label">Administration</span>
-        <h1>Modifier la catégorie</h1>
-    </div>
+<h1 class="mb-4">Modifier la catégorie</h1>
 
-    @await Html.PartialAsync("_AdminNav")
+<div class="form-card">
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-    <div class="form-card">
-        <div asp-validation-summary="All" class="text-danger mb-3"></div>
-
-        <form method="post">
-            <input type="hidden" name="id" value="@Model.Id" />
-            <div class="mb-4">
-                <label class="form-label">Nom</label>
-                <input type="text" name="name" class="form-control" value="@Model.Name" required />
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Enregistrer</button>
-        </form>
-    </div>
+    <form method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <div class="mb-4">
+            <label class="form-label">Nom</label>
+            <input type="text" name="name" class="form-control" value="@Model.Name" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Enregistrer</button>
+    </form>
 </div>

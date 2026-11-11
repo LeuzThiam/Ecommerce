@@ -10,7 +10,7 @@ public sealed class CheckoutController(IOrderingApiClient orderingApiClient) : C
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CancellationToken cancellationToken)
     {
-        var customerId = CustomerCookie.GetOrCreate(HttpContext);
+        var customerId = CustomerCookie.GetEffectiveCustomerId(HttpContext);
         var order = await orderingApiClient.CheckoutAsync(customerId, cancellationToken);
         if (order is null)
         {

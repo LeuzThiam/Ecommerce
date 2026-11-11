@@ -15,6 +15,12 @@ public sealed class CatalogController(ICatalogApiClient catalogApiClient) : Cont
         return View(products);
     }
 
+    public async Task<IActionResult> Categories(CancellationToken cancellationToken)
+    {
+        var categories = await catalogApiClient.GetCategoriesAsync(cancellationToken);
+        return View(categories);
+    }
+
     [HttpGet("Catalog/Product/{slug}")]
     public async Task<IActionResult> Product(string slug, CancellationToken cancellationToken)
     {

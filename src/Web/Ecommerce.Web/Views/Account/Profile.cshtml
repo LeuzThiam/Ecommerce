@@ -1,17 +1,40 @@
 @model UserDto
 @{
     ViewData["Title"] = "Mon profil";
+    var recentOrders = (IReadOnlyList<OrderDto>)ViewBag.RecentOrders;
 }
 
 <div class="page-container py-5">
     <div class="page-header">
-        <h1>Mon profil</h1>
+        <h1>Bonjour, @Model.DisplayName</h1>
+        <p>Retrouvez vos informations et vos commandes.</p>
     </div>
 
     @if (TempData["Success"] is string success)
     {
         <div class="alert alert-success">@success</div>
     }
+
+    <div class="row g-3 mb-4">
+        <div class="col-4">
+            <div class="form-card text-center" style="max-width: none;">
+                <span class="fs-3 fw-bold d-block" style="font-family: var(--font-display);">@ViewBag.OrderCount</span>
+                <span class="text-muted small">Commandes</span>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="form-card text-center" style="max-width: none;">
+                <span class="fs-3 fw-bold d-block" style="font-family: var(--font-display);">@ViewBag.PendingCount</span>
+                <span class="text-muted small">En attente</span>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="form-card text-center" style="max-width: none;">
+                <span class="fs-3 fw-bold d-block" style="font-family: var(--font-display);">@ViewBag.PaidCount</span>
+                <span class="text-muted small">Payées</span>
+            </div>
+        </div>
+    </div>
 
     <div class="row g-4">
         <div class="col-lg-6">
@@ -28,11 +51,32 @@
                 </form>
             </div>
         </div>
+
+        <div class="col-lg-6">
+            <span class="section-label d-block mb-2">Commandes récentes</span>
+            @if (recentOrders.Count == 0)
+            {
+                <div class="empty-state">
+                    <p>Aucune commande pour l'instant.</p>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-2">
+                    @foreach (var order in recentOrders)
+                    {
+                        <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id" class="d-flex justify-content-between align-items-center border rounded-2 px-3 py-2 text-decoration-none" style="border-color: var(--color-border) !important;">
+                            <span class="text-muted small">@order.CreatedAtUtc.ToString("dd MMM yyyy")</span>
+                            <span class="status-badge @OrderStatusPresentation.CssClass(order.Status)">@OrderStatusPresentation.Label(order.Status)</span>
+                        </a>
+                    }
+                </div>
+                <a asp-controller="Orders" asp-action="Index" class="d-inline-block mt-3 small">Voir toutes mes commandes →</a>
+            }
+        </div>
     </div>
 
     <p class="mt-4">
         <a asp-controller="Account" asp-action="Addresses">Mes adresses</a>
-        <span class="text-muted mx-2">·</span>
-        <a asp-controller="Orders" asp-action="Index">Mes commandes</a>
     </p>
 </div>

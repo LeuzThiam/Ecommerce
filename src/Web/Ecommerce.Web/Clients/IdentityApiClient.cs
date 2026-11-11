@@ -18,6 +18,21 @@ public sealed class IdentityApiClient(HttpClient httpClient) : IIdentityApiClien
         return body is null ? null : new LoginResult(body.AccessToken);
     }
 
+    public async Task<RegisterResult> RegisterAsync(string email, string password, string displayName, CancellationToken cancellationToken)
+    {
+        var response = await httpClient.PostAsJsonAsync("/api/identity/register", new { email, password, displayName }, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return new RegisterResult(true);
+        }
+
+        var problem = await response.Content.ReadFromJsonAsync<RegisterErrorResponse>(cancellationToken);
+        var message = problem?.Message
+            ?? problem?.Errors?.Values.SelectMany(v => v).FirstOrDefault()
+            ?? "Inscription impossible pour le moment.";
+        return new RegisterResult(false, message);
+    }
+
     public async Task<UserDto?> GetProfileAsync(string accessToken, CancellationToken cancellationToken)
     {
         using var request = CreateAuthenticatedRequest(HttpMethod.Get, "/api/identity/profile", accessToken);
@@ -81,4 +96,8 @@ public sealed class IdentityApiClient(HttpClient httpClient) : IIdentityApiClien
     }
 
     private sealed record LoginResponse(string AccessToken);
+
+    // Couvre les deux formes d'erreur renvoyées par /api/identity/register : Conflict ({message})
+    // si l'email existe déjà, ValidationProblem ({errors: {champ: [messages]}}) sinon.
+    private sealed record RegisterErrorResponse(string? Message, Dictionary<string, string[]>? Errors);
 }

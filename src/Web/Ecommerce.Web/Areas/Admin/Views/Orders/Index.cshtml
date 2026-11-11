@@ -3,48 +3,41 @@
     ViewData["Title"] = "Administration - Commandes";
 }
 
-<div class="page-container py-5">
-    <div class="page-header">
-        <span class="section-label">Administration</span>
-        <h1>Commandes</h1>
+<h1 class="mb-4">Commandes</h1>
+
+@if (Model.Count == 0)
+{
+    <div class="empty-state">
+        <p>Aucune commande pour l'instant.</p>
     </div>
-
-    @await Html.PartialAsync("_AdminNav")
-
-    @if (Model.Count == 0)
-    {
-        <div class="empty-state">
-            <p>Aucune commande pour l'instant.</p>
-        </div>
-    }
-    else
-    {
-        <div class="table-responsive">
-            <table class="table table-clean align-middle">
-                <thead>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-clean align-middle">
+            <thead>
+                <tr>
+                    <th>Commande</th>
+                    <th>Client</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
                     <tr>
-                        <th>Commande</th>
-                        <th>Client</th>
-                        <th>Date</th>
-                        <th>Statut</th>
-                        <th>Total</th>
-                        <th></th>
+                        <td class="text-muted small text-break">@order.Id</td>
+                        <td class="text-muted small text-break">@order.CustomerId</td>
+                        <td>@order.CreatedAtUtc.ToString("dd/MM/yyyy")</td>
+                        <td><span class="status-badge @OrderStatusPresentation.CssClass(order.Status)">@OrderStatusPresentation.Label(order.Status)</span></td>
+                        <td class="fw-semibold">@order.Total.ToString("C")</td>
+                        <td class="text-end"><a asp-area="Admin" asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id">Détails</a></td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var order in Model)
-                    {
-                        <tr>
-                            <td class="text-muted small text-break">@order.Id</td>
-                            <td class="text-muted small text-break">@order.CustomerId</td>
-                            <td>@order.CreatedAtUtc.ToString("dd/MM/yyyy")</td>
-                            <td><span class="status-badge @OrderStatusPresentation.CssClass(order.Status)">@OrderStatusPresentation.Label(order.Status)</span></td>
-                            <td class="fw-semibold">@order.Total.ToString("C")</td>
-                            <td class="text-end"><a asp-area="Admin" asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id">Détails</a></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
+                }
+            </tbody>
+        </table>
+    </div>
+}
