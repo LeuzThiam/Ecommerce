@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ordering.Application;
 using Stripe;
@@ -7,10 +8,12 @@ namespace Ordering.Infrastructure;
 public sealed class StripePaymentGateway : IPaymentGateway
 {
     private readonly StripeOptions _options;
+    private readonly ILogger<StripePaymentGateway> _logger;
 
-    public StripePaymentGateway(IOptions<StripeOptions> options)
+    public StripePaymentGateway(IOptions<StripeOptions> options, ILogger<StripePaymentGateway> logger)
     {
         _options = options.Value;
+        _logger = logger;
         StripeConfiguration.ApiKey = _options.SecretKey;
     }
 
@@ -43,7 +46,13 @@ public sealed class StripePaymentGateway : IPaymentGateway
 
         try
         {
-            var stripeEvent = EventUtility.ConstructEvent(payload, signatureHeader, _options.WebhookSecret);
+            // throwOnApiVersionMismatch: false - Stripe.net valide par défaut que l'évènement a été
+            // émis avec la même "version d'API Stripe" que celle figée dans ce package NuGet, et
+            // lève sinon une exception. Notre compte Stripe (et la CLI utilisée pour tester les
+            // webhooks en local) tourne sur une version d'API plus récente que Stripe.net 53.1.0 -
+            // la signature elle-même reste vérifiée normalement, seule cette vérification annexe
+            // est désactivée (recommandation officielle du message d'erreur Stripe).
+            var stripeEvent = EventUtility.ConstructEvent(payload, signatureHeader, _options.WebhookSecret, throwOnApiVersionMismatch: false);
 
             if (stripeEvent.Data.Object is not PaymentIntent paymentIntent)
             {
@@ -52,10 +61,11 @@ public sealed class StripePaymentGateway : IPaymentGateway
 
             return new WebhookEvent(stripeEvent.Id, stripeEvent.Type, paymentIntent.Id);
         }
-        catch (StripeException)
+        catch (StripeException ex)
         {
             // Signature invalide ou payload altéré — on ne fait jamais confiance à un webhook
             // qui ne passe pas cette vérification cryptographique.
+            _logger.LogWarning(ex, "Echec de vérification de la signature du webhook Stripe.");
             return null;
         }
     }

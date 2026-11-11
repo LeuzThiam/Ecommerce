@@ -22,3 +22,5 @@ public sealed record OrderDto(
 // Ordering.Api a refusé (commande non payée) - tout le reste (ex. commande d'un autre client) se
 // traduit par les deux à null, que le contrôleur traite comme un 404.
 public sealed record InvoiceDownload(byte[]? Bytes, string? ErrorMessage);
+
+public sealed record PaymentIntentDto(string ClientSecret);

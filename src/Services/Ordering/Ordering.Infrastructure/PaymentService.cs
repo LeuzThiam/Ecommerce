@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Ordering.Application;
 using Ordering.Domain;
 using Ordering.Domain.Common;
@@ -8,7 +9,8 @@ public sealed class PaymentService(
     IOrderRepository orderRepository,
     IPaymentRepository paymentRepository,
     IPaymentGateway paymentGateway,
-    IStockReservationClient stockClient) : IPaymentService
+    IStockReservationClient stockClient,
+    ILogger<PaymentService> logger) : IPaymentService
 {
     public async Task<PaymentIntentDto> CreatePaymentIntentAsync(Guid orderId, CancellationToken cancellationToken)
     {
@@ -38,19 +40,24 @@ public sealed class PaymentService(
         var webhookEvent = paymentGateway.ParseWebhookEvent(payload, signatureHeader);
         if (webhookEvent is null)
         {
+            logger.LogWarning("Webhook Stripe rejeté : signature invalide ou absente.");
             return;
         }
+
+        logger.LogInformation("Webhook Stripe reçu : {Type} pour {ProviderPaymentId}", webhookEvent.Type, webhookEvent.ProviderPaymentId);
 
         // Idempotence : si on a déjà traité cet événement (Stripe garantit "au moins une fois",
         // donc des doublons arrivent), on s'arrête ici sans rien refaire.
         if (await paymentRepository.HasProcessedEventAsync(webhookEvent.EventId, cancellationToken))
         {
+            logger.LogInformation("Webhook Stripe {EventId} déjà traité, ignoré.", webhookEvent.EventId);
             return;
         }
 
         var payment = await paymentRepository.GetByProviderPaymentIdAsync(webhookEvent.ProviderPaymentId, cancellationToken);
         if (payment is null)
         {
+            logger.LogWarning("Webhook Stripe : aucun paiement trouvé pour {ProviderPaymentId}.", webhookEvent.ProviderPaymentId);
             await paymentRepository.MarkEventAsProcessedAsync(webhookEvent.EventId, cancellationToken);
             await paymentRepository.SaveChangesAsync(cancellationToken);
             return;

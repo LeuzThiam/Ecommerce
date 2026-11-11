@@ -14,6 +14,8 @@ public interface IOrderingApiClient
 
     Task<OrderDto?> CheckoutAsync(Guid customerId, CancellationToken cancellationToken);
 
+    Task<PaymentIntentDto> CreatePaymentIntentAsync(Guid orderId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<OrderDto>> GetOrderHistoryAsync(string accessToken, CancellationToken cancellationToken);
 
     Task<OrderDto?> GetOrderAsync(string accessToken, Guid orderId, CancellationToken cancellationToken);

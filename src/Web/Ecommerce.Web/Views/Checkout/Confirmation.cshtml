@@ -4,9 +4,10 @@
 
 <div class="page-container py-5">
     <div class="empty-state" style="max-width: 480px; margin-inline: auto;">
-        <div class="status-badge status-badge--paid mb-3 d-inline-flex">Commande enregistrée</div>
+        <div class="status-badge status-badge--pending mb-3 d-inline-flex">Paiement en cours de confirmation</div>
         <h1 class="h2 mb-2">Merci pour votre commande !</h1>
-        <p class="mb-1">Référence</p>
+        <p class="text-muted mb-1">Votre paiement a été transmis - le statut de la commande se mettra à jour dès sa confirmation.</p>
+        <p class="mb-1 mt-3">Référence</p>
         <p class="fw-semibold text-break mb-4" style="color: var(--color-ink);">@ViewBag.OrderId</p>
         <a asp-controller="Catalog" asp-action="Index" class="btn btn-primary">Continuer vos achats</a>
     </div>
