@@ -42,7 +42,20 @@ public sealed class AccountController(IIdentityApiClient identityApiClient, IOrd
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(string email, string password, string? returnUrl, CancellationToken cancellationToken)
     {
-        var loginResult = await identityApiClient.LoginAsync(email, password, cancellationToken);
+        LoginResult? loginResult;
+        try
+        {
+            loginResult = await identityApiClient.LoginAsync(email, password, cancellationToken);
+        }
+        catch (IdentityApiException ex)
+        {
+            // Compte existant mais email pas encore confirmé - un message distinct de "mot de
+            // passe incorrect", pour que la personne sache réellement quoi faire.
+            ModelState.AddModelError(string.Empty, ex.Message);
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
         if (loginResult is null)
         {
             ModelState.AddModelError(string.Empty, "Email ou mot de passe incorrect.");

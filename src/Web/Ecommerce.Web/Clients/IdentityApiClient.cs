@@ -10,6 +10,17 @@ public sealed class IdentityApiClient(HttpClient httpClient) : IIdentityApiClien
     public async Task<LoginResult?> LoginAsync(string email, string password, CancellationToken cancellationToken)
     {
         var response = await httpClient.PostAsJsonAsync("/api/identity/login", new { email, password }, cancellationToken);
+
+        // Identity.Api distingue deux cas différents sous un 400 Bad Request : email/mot de passe
+        // réellement incorrects (401, pas ce cas-ci) et compte existant mais email pas encore
+        // confirmé (400, avec un message précis) - les confondre afficherait "mot de passe
+        // incorrect" à quelqu'un qui a juste oublié de cliquer le lien de confirmation.
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            var problem = await response.Content.ReadFromJsonAsync<LoginBadRequestResponse>(cancellationToken);
+            throw new IdentityApiException(problem?.Message ?? "Connexion impossible pour le moment.");
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             return null;
@@ -141,6 +152,11 @@ public sealed class IdentityApiClient(HttpClient httpClient) : IIdentityApiClien
     private sealed record ProblemDetailsResponse(string Detail);
 
     private sealed record LoginResponse(string AccessToken);
+
+    // Login renvoie son 400 "email pas confirmé" sous la forme ad-hoc {message}, pas le Problem
+    // Details {detail} des DomainException - ce 400-là est levé explicitement par l'endpoint lui
+    // même, avant toute règle métier du Domain.
+    private sealed record LoginBadRequestResponse(string? Message);
 
     // Couvre les deux formes d'erreur renvoyées par /api/identity/register : Conflict ({message})
     // si l'email existe déjà, ValidationProblem ({errors: {champ: [messages]}}) sinon.
