@@ -8,7 +8,7 @@ public sealed class CartController(IOrderingApiClient orderingApiClient) : Contr
 {
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        var customerId = CustomerCookie.GetOrCreate(HttpContext);
+        var customerId = CustomerCookie.GetEffectiveCustomerId(HttpContext);
         var cart = await orderingApiClient.GetCartAsync(customerId, cancellationToken);
         return View(cart);
     }
@@ -17,7 +17,7 @@ public sealed class CartController(IOrderingApiClient orderingApiClient) : Contr
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Add(Guid productId, int quantity, CancellationToken cancellationToken)
     {
-        var customerId = CustomerCookie.GetOrCreate(HttpContext);
+        var customerId = CustomerCookie.GetEffectiveCustomerId(HttpContext);
         await orderingApiClient.AddItemAsync(customerId, productId, quantity <= 0 ? 1 : quantity, cancellationToken);
         return RedirectToAction(nameof(Index));
     }
@@ -26,7 +26,7 @@ public sealed class CartController(IOrderingApiClient orderingApiClient) : Contr
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateQuantity(Guid productId, int quantity, CancellationToken cancellationToken)
     {
-        var customerId = CustomerCookie.GetOrCreate(HttpContext);
+        var customerId = CustomerCookie.GetEffectiveCustomerId(HttpContext);
         await orderingApiClient.UpdateItemQuantityAsync(customerId, productId, quantity, cancellationToken);
         return RedirectToAction(nameof(Index));
     }
@@ -35,7 +35,7 @@ public sealed class CartController(IOrderingApiClient orderingApiClient) : Contr
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Remove(Guid productId, CancellationToken cancellationToken)
     {
-        var customerId = CustomerCookie.GetOrCreate(HttpContext);
+        var customerId = CustomerCookie.GetEffectiveCustomerId(HttpContext);
         await orderingApiClient.RemoveItemAsync(customerId, productId, cancellationToken);
         return RedirectToAction(nameof(Index));
     }

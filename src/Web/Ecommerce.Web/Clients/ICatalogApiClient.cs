@@ -30,6 +30,7 @@ public interface ICatalogApiClient
         decimal price,
         int stock,
         Guid categoryId,
+        string? imageUrl,
         CancellationToken cancellationToken);
 
     Task<ProductDto?> UpdateProductAsync(
@@ -39,6 +40,7 @@ public interface ICatalogApiClient
         decimal price,
         int stock,
         Guid categoryId,
+        string? imageUrl,
         CancellationToken cancellationToken);
 
     Task<ProductDto?> DeactivateProductAsync(string accessToken, Guid id, CancellationToken cancellationToken);

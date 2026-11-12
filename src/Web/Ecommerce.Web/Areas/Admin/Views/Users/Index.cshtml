@@ -1,0 +1,66 @@
+@model IReadOnlyList<UserAdminDto>
+@{
+    ViewData["Title"] = "Administration - Utilisateurs";
+    var currentUserId = (Guid)ViewBag.CurrentUserId;
+}
+
+<h1 class="mb-4">Utilisateurs</h1>
+
+<div class="table-responsive">
+    <table class="table table-clean align-middle">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Inscrit le</th>
+                <th>Rôle</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model)
+            {
+                var isAdmin = user.Roles.Contains("Administrator");
+                <tr>
+                    <td class="fw-medium">@user.DisplayName</td>
+                    <td class="text-muted small">
+                        @user.Email
+                        @if (!user.EmailConfirmed)
+                        {
+                            <span class="status-badge status-badge--pending ms-1">Non confirmé</span>
+                        }
+                    </td>
+                    <td>@user.CreatedAtUtc.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        @if (isAdmin)
+                        {
+                            <span class="status-badge status-badge--active">Administrateur</span>
+                        }
+                        else
+                        {
+                            <span class="status-badge status-badge--inactive">Client</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        @if (user.Id == currentUserId)
+                        {
+                            <span class="text-muted small">Vous</span>
+                        }
+                        else if (isAdmin)
+                        {
+                            <form asp-area="Admin" asp-controller="Users" asp-action="Demote" asp-route-id="@user.Id" method="post">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Retirer admin</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-area="Admin" asp-controller="Users" asp-action="Promote" asp-route-id="@user.Id" method="post">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Promouvoir admin</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

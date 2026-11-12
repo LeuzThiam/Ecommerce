@@ -1,0 +1,69 @@
+@{
+    ViewData["Title"] = "Administration - Vue d'ensemble";
+    var recentOrders = (IReadOnlyList<OrderDto>)ViewBag.RecentOrders;
+}
+
+<h1 class="mb-4">Vue d'ensemble</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="form-card text-center" style="max-width: none;">
+            <span class="fs-3 fw-bold d-block" style="font-family: var(--font-display);">@ViewBag.ProductCount</span>
+            <span class="text-muted small">Produits</span>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="form-card text-center" style="max-width: none;">
+            <span class="fs-3 fw-bold d-block" style="font-family: var(--font-display);">@ViewBag.CategoryCount</span>
+            <span class="text-muted small">Catégories</span>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="form-card text-center" style="max-width: none;">
+            <span class="fs-3 fw-bold d-block" style="font-family: var(--font-display);">@ViewBag.OrderCount</span>
+            <span class="text-muted small">Commandes</span>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="form-card text-center" style="max-width: none;">
+            <span class="fs-3 fw-bold d-block" style="font-family: var(--font-display);">@ViewBag.PendingCount</span>
+            <span class="text-muted small">À payer</span>
+        </div>
+    </div>
+</div>
+
+<span class="section-label d-block mb-2">Commandes récentes</span>
+@if (recentOrders.Count == 0)
+{
+    <div class="empty-state">
+        <p>Aucune commande pour l'instant.</p>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-clean align-middle">
+            <thead>
+                <tr>
+                    <th>Commande</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in recentOrders)
+                {
+                    <tr>
+                        <td class="text-muted small text-break">@order.Id</td>
+                        <td>@order.CreatedAtUtc.ToString("dd/MM/yyyy")</td>
+                        <td><span class="status-badge @OrderStatusPresentation.CssClass(order.Status)">@OrderStatusPresentation.Label(order.Status)</span></td>
+                        <td class="fw-semibold">@order.Total.ToString("C")</td>
+                        <td class="text-end"><a asp-area="Admin" asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id">Détails</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

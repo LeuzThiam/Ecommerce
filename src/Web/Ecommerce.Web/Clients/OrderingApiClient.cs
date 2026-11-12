@@ -46,6 +46,18 @@ public sealed class OrderingApiClient(HttpClient httpClient) : IOrderingApiClien
         return await response.Content.ReadFromJsonAsync<OrderDto>(cancellationToken);
     }
 
+    public async Task<PaymentIntentDto> CreatePaymentIntentAsync(Guid orderId, CancellationToken cancellationToken)
+    {
+        var response = await httpClient.PostAsync($"/api/ordering/orders/{orderId}/payment-intent", null, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            throw new OrderingApiException(await ReadErrorMessageAsync(response, cancellationToken));
+        }
+
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<PaymentIntentDto>(cancellationToken))!;
+    }
+
     public async Task<IReadOnlyList<OrderDto>> GetOrderHistoryAsync(string accessToken, CancellationToken cancellationToken)
     {
         using var request = CreateAuthenticatedRequest(HttpMethod.Get, "/api/ordering/orders", accessToken);

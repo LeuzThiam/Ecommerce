@@ -1,0 +1,30 @@
+@{
+    ViewData["Title"] = "Inscription";
+}
+
+<div class="page-container py-5 d-flex justify-content-center">
+    <div class="form-card w-100">
+        <h1 class="h3 mb-4">Créer un compte</h1>
+
+        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Nom affiché</label>
+                <input type="text" name="displayName" class="form-control" required autofocus />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-control" required />
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" name="password" class="form-control" required minlength="8" />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">S'inscrire</button>
+        </form>
+        <p class="text-center text-muted small mt-3 mb-0">
+            Déjà un compte ? <a asp-controller="Account" asp-action="Login">Se connecter</a>
+        </p>
+    </div>
+</div>

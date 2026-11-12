@@ -1,5 +1,7 @@
+using System.Linq.Expressions;
 using Catalog.Application;
 using Catalog.Application.Common;
+using Catalog.Domain;
 using Catalog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +9,19 @@ namespace Catalog.Infrastructure;
 
 public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductCatalog
 {
+    // Projection "détail" partagée par GetBySlugAsync/GetByIdAsync : attributs riches, variantes
+    // et avis, consultés uniquement à l'unité - jamais en liste (voir le commentaire sur
+    // SearchAsync plus bas).
+    private static readonly Expression<Func<Product, ProductDto>> DetailProjection = p => new ProductDto(
+        p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive, p.ImageUrl, p.CreatedAtUtc,
+        p.Description, p.Brand, p.Sku, p.DiscountPercentage, p.Rating, p.Weight,
+        p.DimensionWidth, p.DimensionHeight, p.DimensionDepth,
+        p.WarrantyInformation, p.ShippingInformation, p.AvailabilityStatus, p.ReturnPolicy,
+        p.MinimumOrderQuantity, p.Barcode, p.QrCodeUrl,
+        p.Tags, p.Images,
+        p.Reviews.Select(r => new ProductReviewDto(r.Id, r.Rating, r.Comment, r.ReviewerName, r.ReviewerEmail, r.ReviewedAtUtc)).ToList(),
+        p.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList());
+
     public async Task<PagedResult<ProductDto>> SearchAsync(ProductSearch search, CancellationToken cancellationToken)
     {
         var query = dbContext.Products.AsNoTracking().AsQueryable();
@@ -39,6 +54,7 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
         {
             "price" => query.OrderBy(p => p.Price),
             "price-desc" => query.OrderByDescending(p => p.Price),
+            "newest" => query.OrderByDescending(p => p.CreatedAtUtc),
             _ => query.OrderBy(p => p.Name)
         };
 
@@ -47,7 +63,7 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
         var items = await query
             .Skip((search.Page - 1) * search.PageSize)
             .Take(search.PageSize)
-            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive))
+            .Select(p => new ProductDto(p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive, p.ImageUrl, p.CreatedAtUtc))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProductDto>(items, search.Page, search.PageSize, totalCount);
@@ -64,9 +80,7 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
         return await dbContext.Products
             .AsNoTracking()
             .Where(p => p.Slug == slug && p.IsActive)
-            .Select(p => new ProductDto(
-                p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive,
-                p.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList()))
+            .Select(DetailProjection)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -79,9 +93,7 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
         }
 
         return await query
-            .Select(p => new ProductDto(
-                p.Id, p.Name, p.Slug, p.Price, p.Stock, p.CategoryId, p.IsActive,
-                p.Variants.Select(v => new ProductVariantDto(v.Id, v.Name, v.Price, v.Stock)).ToList()))
+            .Select(DetailProjection)
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

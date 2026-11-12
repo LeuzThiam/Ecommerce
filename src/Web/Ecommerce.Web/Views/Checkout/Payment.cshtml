@@ -1,0 +1,55 @@
+@{
+    ViewData["Title"] = "Paiement";
+}
+
+<div class="page-container py-5 d-flex justify-content-center">
+    <div class="form-card w-100" style="max-width: 480px;">
+        <h1 class="h3 mb-1">Paiement</h1>
+        <p class="text-muted small mb-4">Référence : <span class="text-break">@ViewBag.OrderId</span></p>
+
+        @if (ViewBag.ConfigurationError is string configError)
+        {
+            <div class="alert alert-danger mb-0">@configError</div>
+        }
+        else
+        {
+            <div id="payment-element" class="mb-3"></div>
+            <div id="payment-error" class="text-danger small mb-3" role="alert"></div>
+            <button id="submit-payment" type="button" class="btn btn-primary w-100">Payer</button>
+
+            <script src="https://js.stripe.com/v3/"></script>
+            <script>
+                const stripe = Stripe('@ViewBag.PublishableKey');
+                const elements = stripe.elements({ clientSecret: '@ViewBag.ClientSecret' });
+                const paymentElement = elements.create('payment');
+                paymentElement.mount('#payment-element');
+
+                const submitButton = document.getElementById('submit-payment');
+                const errorBox = document.getElementById('payment-error');
+
+                submitButton.addEventListener('click', async () => {
+                    submitButton.disabled = true;
+                    errorBox.textContent = '';
+
+                    const { error, paymentIntent } = await stripe.confirmPayment({
+                        elements,
+                        redirect: 'if_required',
+                        confirmParams: {
+                            return_url: window.location.origin + '/Checkout/Confirmation?orderId=@ViewBag.OrderId',
+                        },
+                    });
+
+                    if (error) {
+                        errorBox.textContent = error.message;
+                        submitButton.disabled = false;
+                        return;
+                    }
+
+                    if (paymentIntent && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing')) {
+                        window.location.href = '/Checkout/Confirmation?orderId=@ViewBag.OrderId';
+                    }
+                });
+            </script>
+        }
+    </div>
+</div>

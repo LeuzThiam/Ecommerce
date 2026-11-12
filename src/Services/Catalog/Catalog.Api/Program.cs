@@ -25,6 +25,12 @@ builder.Services.AddScoped<ICategoryAdminService, CategoryAdminService>();
 builder.Services.AddScoped<IProductAdminService, ProductAdminService>();
 builder.Services.AddScoped<IStockService, StockService>();
 
+builder.Services.AddHttpClient<IDummyProductImportSource, DummyJsonProductImportSource>(client =>
+{
+    client.BaseAddress = new Uri("https://dummyjson.com");
+});
+builder.Services.AddScoped<IProductImportService, ProductImportService>();
+
 // Même clé de signature que Identity.Api — c'est ce qui permet à ce service de valider
 // l'identité d'un appelant sans dépendre directement d'Identity.Api à l'exécution.
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
@@ -161,7 +167,7 @@ app.MapPost("/api/catalog/products", async (
     IProductAdminService products,
     CancellationToken cancellationToken) =>
 {
-    var product = await products.CreateAsync(request.Name, request.Price, request.Stock, request.CategoryId, cancellationToken);
+    var product = await products.CreateAsync(request.Name, request.Price, request.Stock, request.CategoryId, request.ImageUrl, cancellationToken);
     return Results.Created($"/api/catalog/products/{product.Slug}", product);
 })
 .RequireAuthorization("AdminOnly");
@@ -172,7 +178,7 @@ app.MapPut("/api/catalog/products/{id:guid}", async (
     IProductAdminService products,
     CancellationToken cancellationToken) =>
 {
-    var product = await products.UpdateAsync(id, request.Name, request.Price, request.Stock, request.CategoryId, cancellationToken);
+    var product = await products.UpdateAsync(id, request.Name, request.Price, request.Stock, request.CategoryId, request.ImageUrl, cancellationToken);
     return product is null ? Results.NotFound() : Results.Ok(product);
 })
 .RequireAuthorization("AdminOnly");
@@ -208,6 +214,18 @@ app.MapPost("/api/catalog/products/{id:guid}/variants", async (
 {
     var product = await products.AddVariantAsync(id, request.Name, request.Price, request.Stock, cancellationToken);
     return product is null ? Results.NotFound() : Results.Ok(product);
+})
+.RequireAuthorization("AdminOnly");
+
+// Peuple le catalogue avec des produits fictifs réalistes depuis dummyjson.com - pratique pour
+// une démo ou un environnement de dev, jamais appelé en conditions réelles par un client.
+app.MapPost("/api/catalog/admin/products/import-dummy", async (
+    int? limit,
+    IProductImportService importService,
+    CancellationToken cancellationToken) =>
+{
+    var result = await importService.ImportDummyProductsAsync(limit is > 0 ? limit.Value : 20, cancellationToken);
+    return Results.Ok(result);
 })
 .RequireAuthorization("AdminOnly");
 
@@ -268,8 +286,8 @@ app.Run();
 
 record CreateCategoryRequest(string Name);
 record UpdateCategoryRequest(string Name);
-record CreateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId);
-record UpdateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId);
+record CreateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId, string? ImageUrl = null);
+record UpdateProductRequest(string Name, decimal Price, int Stock, Guid CategoryId, string? ImageUrl = null);
 record CreateProductVariantRequest(string Name, decimal Price, int Stock);
 record ReserveStockRequest(Guid ProductId, int Quantity);
 

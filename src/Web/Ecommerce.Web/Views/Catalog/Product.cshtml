@@ -3,23 +3,185 @@
     ViewData["Title"] = Model.Name;
 }
 
-<a asp-controller="Catalog" asp-action="Index">&larr; Retour au catalogue</a>
+<div class="page-container py-5">
+    <a asp-controller="Catalog" asp-action="Index" class="d-inline-block mb-4 small">&larr; Retour au catalogue</a>
 
-<h1>@Model.Name</h1>
-<p class="fs-4">@Model.Price.ToString("C")</p>
-<p class="text-muted">
-    @(Model.Stock > 0 ? $"{Model.Stock} en stock" : "Rupture de stock")
-</p>
+    <div class="row g-4 g-lg-5">
+        <div class="col-md-5">
+            <div class="product-card__media" style="aspect-ratio: 1; border-radius: var(--radius); font-size: 4rem;">
+                @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                {
+                    <img src="@Model.ImageUrl" alt="@Model.Name" />
+                }
+                else
+                {
+                    @Model.Name.Substring(0, 1).ToUpperInvariant()
+                }
+            </div>
+        </div>
+        <div class="col-md-7">
+            @if (!string.IsNullOrWhiteSpace(Model.Brand))
+            {
+                <span class="section-label d-block mb-1">@Model.Brand</span>
+            }
+            <h1 class="mb-2">@Model.Name</h1>
 
-@if (Model.Stock > 0)
-{
-    <form asp-controller="Cart" asp-action="Add" method="post" class="row g-2">
-        <input type="hidden" name="productId" value="@Model.Id" />
-        <div class="col-auto">
-            <input type="number" name="quantity" value="1" min="1" max="@Model.Stock" class="form-control" />
+            @if (Model.Rating is not null)
+            {
+                var filled = (int)Math.Round(Model.Rating.Value);
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="rating-stars">@(new string('★', filled))@(new string('☆', 5 - filled))</span>
+                    <span class="text-muted small">@Model.Rating.Value.ToString("0.0") / 5</span>
+                </div>
+            }
+
+            <p class="fs-3 fw-bold mb-1" style="font-family: var(--font-display);">
+                @Model.Price.ToString("C")
+                @if (Model.DiscountPercentage is > 0)
+                {
+                    <span class="text-muted small fw-normal">(-@Model.DiscountPercentage.Value.ToString("0.#")%)</span>
+                }
+            </p>
+
+            @if (Model.Stock > 0)
+            {
+                <span class="status-badge status-badge--paid mb-3 d-inline-flex">@Model.Stock en stock</span>
+            }
+            else
+            {
+                <span class="status-badge status-badge--cancelled mb-3 d-inline-flex">Rupture de stock</span>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.Description))
+            {
+                <p class="text-muted mb-3">@Model.Description</p>
+            }
+
+            @if (Model.Tags is { Count: > 0 })
+            {
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    @foreach (var tag in Model.Tags)
+                    {
+                        <span class="tag-chip">@tag</span>
+                    }
+                </div>
+            }
+
+            @if (Model.Variants is { Count: > 0 })
+            {
+                <div class="mb-4">
+                    <span class="section-label d-block mb-2">Variantes disponibles</span>
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var variant in Model.Variants)
+                        {
+                            <div class="d-flex justify-content-between align-items-center border rounded-2 px-3 py-2" style="border-color: var(--color-border) !important;">
+                                <span>@variant.Name</span>
+                                <span class="d-flex align-items-center gap-3">
+                                    <span class="fw-semibold">@variant.Price.ToString("C")</span>
+                                    @if (variant.Stock > 0)
+                                    {
+                                        <span class="text-muted small">@variant.Stock en stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Rupture</span>
+                                    }
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (Model.Stock > 0)
+            {
+                <form asp-controller="Cart" asp-action="Add" method="post" class="d-flex gap-2 align-items-end">
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <div>
+                        <label class="form-label">Quantité</label>
+                        <input type="number" name="quantity" value="1" min="1" max="@Model.Stock" class="form-control" style="width: 6rem;" />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">Ajouter au panier</button>
+                </form>
+            }
         </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Ajouter au panier</button>
+    </div>
+
+    @{
+        var hasDetails = Model.Sku is not null || Model.Weight is not null || Model.DimensionWidth is not null
+            || Model.WarrantyInformation is not null || Model.ShippingInformation is not null
+            || Model.AvailabilityStatus is not null || Model.ReturnPolicy is not null || Model.MinimumOrderQuantity is not null;
+    }
+    @if (hasDetails)
+    {
+        <div class="mt-5" style="max-width: 640px;">
+            <span class="section-label d-block mb-2">Informations produit</span>
+            <dl class="product-detail-list row mb-0">
+                @if (Model.Sku is not null)
+                {
+                    <dt class="col-5">Référence (SKU)</dt><dd class="col-7">@Model.Sku</dd>
+                }
+                @if (Model.Weight is not null)
+                {
+                    <dt class="col-5">Poids</dt><dd class="col-7">@Model.Weight.Value.ToString("0.##") kg</dd>
+                }
+                @if (Model.DimensionWidth is not null)
+                {
+                    <dt class="col-5">Dimensions</dt><dd class="col-7">@Model.DimensionWidth.Value.ToString("0.##") × @Model.DimensionHeight.GetValueOrDefault().ToString("0.##") × @Model.DimensionDepth.GetValueOrDefault().ToString("0.##") cm</dd>
+                }
+                @if (Model.AvailabilityStatus is not null)
+                {
+                    <dt class="col-5">Disponibilité</dt><dd class="col-7">@Model.AvailabilityStatus</dd>
+                }
+                @if (Model.MinimumOrderQuantity is not null)
+                {
+                    <dt class="col-5">Quantité minimale</dt><dd class="col-7">@Model.MinimumOrderQuantity</dd>
+                }
+                @if (Model.ShippingInformation is not null)
+                {
+                    <dt class="col-5">Livraison</dt><dd class="col-7">@Model.ShippingInformation</dd>
+                }
+                @if (Model.WarrantyInformation is not null)
+                {
+                    <dt class="col-5">Garantie</dt><dd class="col-7">@Model.WarrantyInformation</dd>
+                }
+                @if (Model.ReturnPolicy is not null)
+                {
+                    <dt class="col-5">Retours</dt><dd class="col-7">@Model.ReturnPolicy</dd>
+                }
+            </dl>
         </div>
-    </form>
-}
+    }
+
+    @if (Model.Images is { Count: > 1 })
+    {
+        <div class="mt-5">
+            <span class="section-label d-block mb-2">Photos</span>
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var image in Model.Images)
+                {
+                    <img src="@image" alt="@Model.Name" style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--color-border);" />
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.Reviews is { Count: > 0 })
+    {
+        <div class="mt-5" style="max-width: 640px;">
+            <span class="section-label d-block mb-3">Avis clients (@Model.Reviews.Count)</span>
+            <div class="d-flex flex-column gap-3">
+                @foreach (var review in Model.Reviews.OrderByDescending(r => r.ReviewedAtUtc))
+                {
+                    <div class="review-card">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-semibold">@review.ReviewerName</span>
+                            <span class="rating-stars">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
+                        </div>
+                        <p class="text-muted small mb-0">@review.Comment</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

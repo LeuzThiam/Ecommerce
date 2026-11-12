@@ -4,68 +4,90 @@
     var categories = (IReadOnlyList<CategoryDto>)ViewBag.Categories;
 }
 
-<h1>Catalogue</h1>
-
-<form asp-controller="Catalog" asp-action="Index" method="get" class="row g-2 mb-4">
-    <div class="col-auto">
-        <input type="text" name="query" value="@ViewBag.Query" class="form-control" placeholder="Rechercher un produit" />
+<div class="page-container py-5">
+    <div class="page-header">
+        <h1>Catalogue</h1>
+        <p>@Model.TotalCount produit@(Model.TotalCount > 1 ? "s" : "")</p>
     </div>
-    <div class="col-auto">
-        <select name="categoryId" class="form-select">
-            <option value="">Toutes les catégories</option>
-            @foreach (var category in categories)
+
+    <form asp-controller="Catalog" asp-action="Index" method="get" class="row g-2 mb-4">
+        <div class="col-12 col-sm-6 col-md-4">
+            <input type="text" name="query" value="@ViewBag.Query" class="form-control" placeholder="Rechercher un produit" />
+        </div>
+        <div class="col-8 col-sm-4 col-md-3">
+            <select name="categoryId" class="form-select">
+                <option value="">Toutes les catégories</option>
+                @foreach (var category in categories)
+                {
+                    <option value="@category.Id" selected="@(ViewBag.CategoryId == category.Id)">@category.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-4 col-sm-2 col-md-auto">
+            <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+        </div>
+    </form>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-state">
+            <p>Aucun produit ne correspond à votre recherche.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4">
+            @foreach (var product in Model.Items)
             {
-                <option value="@category.Id" selected="@(ViewBag.CategoryId == category.Id)">@category.Name</option>
-            }
-        </select>
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-primary">Filtrer</button>
-    </div>
-</form>
-
-@if (Model.Items.Count == 0)
-{
-    <p>Aucun produit ne correspond à votre recherche.</p>
-}
-else
-{
-    <div class="row">
-        @foreach (var product in Model.Items)
-        {
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">@product.Name</h5>
-                        <p class="card-text">@product.Price.ToString("C")</p>
-                        <p class="card-text text-muted">
-                            @(product.Stock > 0 ? $"{product.Stock} en stock" : "Rupture de stock")
-                        </p>
-                        <a asp-controller="Catalog" asp-action="Product" asp-route-slug="@product.Slug" class="btn btn-outline-primary">
-                            Voir le produit
-                        </a>
-                    </div>
+                <div class="col">
+                    <a asp-controller="Catalog" asp-action="Product" asp-route-slug="@product.Slug" class="product-card text-decoration-none">
+                        <div class="product-card__media">
+                            @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                            {
+                                <img src="@product.ImageUrl" alt="@product.Name" loading="lazy" />
+                            }
+                            else
+                            {
+                                @product.Name.Substring(0, 1).ToUpperInvariant()
+                            }
+                        </div>
+                        <div class="product-card__body">
+                            <span class="product-card__name">@product.Name</span>
+                            <span class="product-card__price">@product.Price.ToString("C")</span>
+                            @if (product.Stock > 0)
+                            {
+                                <span class="text-muted small">@product.Stock en stock</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-badge--cancelled">Rupture de stock</span>
+                            }
+                        </div>
+                    </a>
                 </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
 
-    <nav aria-label="Pagination du catalogue">
-        <ul class="pagination">
-            @if (Model.Page > 1)
-            {
-                <li class="page-item">
-                    <a class="page-link" asp-controller="Catalog" asp-action="Index"
-                       asp-route-query="@ViewBag.Query" asp-route-categoryId="@ViewBag.CategoryId" asp-route-page="@(Model.Page - 1)">Précédent</a>
-                </li>
-            }
-            @if (Model.Page < Model.TotalPages)
-            {
-                <li class="page-item">
-                    <a class="page-link" asp-controller="Catalog" asp-action="Index"
-                       asp-route-query="@ViewBag.Query" asp-route-categoryId="@ViewBag.CategoryId" asp-route-page="@(Model.Page + 1)">Suivant</a>
-                </li>
-            }
-        </ul>
-    </nav>
-}
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Pagination du catalogue" class="mt-5">
+                <ul class="pagination justify-content-center">
+                    @if (Model.Page > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" asp-controller="Catalog" asp-action="Index"
+                               asp-route-query="@ViewBag.Query" asp-route-categoryId="@ViewBag.CategoryId" asp-route-page="@(Model.Page - 1)">Précédent</a>
+                        </li>
+                    }
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" asp-controller="Catalog" asp-action="Index"
+                               asp-route-query="@ViewBag.Query" asp-route-categoryId="@ViewBag.CategoryId" asp-route-page="@(Model.Page + 1)">Suivant</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+</div>

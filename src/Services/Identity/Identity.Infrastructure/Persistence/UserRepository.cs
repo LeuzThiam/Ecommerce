@@ -25,4 +25,9 @@ public sealed class UserRepository(ApplicationDbContext dbContext) : IUserReposi
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken) =>
         await dbContext.SaveChangesAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken) =>
+        await dbContext.DomainUsers
+            .OrderBy(u => u.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
 }

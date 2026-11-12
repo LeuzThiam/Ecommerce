@@ -1,74 +1,104 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Ecommerce.Web</title>
+    <title>@ViewData["Title"] - Ecommerce</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Ecommerce.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Ecommerce.Web</a>
+    <header class="site-header">
+        <nav class="navbar navbar-expand-md">
+            <div class="container page-container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Ecommerce</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+                <div class="d-flex align-items-center gap-1 order-md-3">
+                    @await Component.InvokeAsync("CartSummary")
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="dropdown account-menu">
+                            <button class="nav-icon-link" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mon compte">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><h6 class="dropdown-header">Bonjour, @User.Identity.Name</h6></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Mon profil</a></li>
+                                <li><a class="dropdown-item" asp-controller="Orders" asp-action="Index">Mes commandes</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Addresses">Mes adresses</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form asp-controller="Account" asp-action="Logout" method="post">
+                                        <button type="submit" class="dropdown-item">Déconnexion</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="nav-link" asp-controller="Account" asp-action="Login">Connexion</a>
+                        <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Register">S'inscrire</a>
+                    }
+                </div>
+
+                <div class="navbar-collapse collapse d-md-inline-flex align-items-md-center justify-content-between gap-md-3 order-md-2">
+                    <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Accueil</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Catalog" asp-action="Index">Catalogue</a>
+                            <a class="nav-link" asp-area="" asp-controller="Catalog" asp-action="Index">Catalogue</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Cart" asp-action="Index">Panier</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link" asp-area="" asp-controller="Catalog" asp-action="Categories">Catégories</a>
                         </li>
                         @if (User.IsInRole("Administrator"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="Admin" asp-controller="Products" asp-action="Index">Administration</a>
-                            </li>
-                        }
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Profile">Mon compte</a>
-                            </li>
-                            <li class="nav-item">
-                                <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="d-flex">
-                                    <button type="submit" class="btn btn-link nav-link text-dark">Déconnexion</button>
-                                </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Login">Connexion</a>
+                                <a class="nav-link text-accent" asp-area="Admin" asp-controller="Overview" asp-action="Index">Administration</a>
                             </li>
                         }
                     </ul>
+
+                    <form class="nav-search d-none d-md-flex" method="get" asp-area="" asp-controller="Catalog" asp-action="Index">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        <input type="text" name="query" placeholder="Rechercher un produit, une marque..." />
+                    </form>
+                    <form class="nav-search d-flex d-md-none mt-2" method="get" asp-area="" asp-controller="Catalog" asp-action="Index">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        <input type="text" name="query" placeholder="Rechercher un produit, une marque..." />
+                    </form>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <main role="main">
+        @RenderBody()
+    </main>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - Ecommerce.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="site-footer">
+        <div class="container page-container d-flex flex-wrap justify-content-between gap-2">
+            <span>&copy; 2026 Ecommerce</span>
+            <a asp-area="" asp-controller="Home" asp-action="Privacy">Confidentialité</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

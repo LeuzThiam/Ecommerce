@@ -3,38 +3,54 @@
     ViewData["Title"] = "Détail de la commande";
 }
 
-<h1>Commande @Model.Id</h1>
+<div class="page-container py-5">
+    <a asp-controller="Orders" asp-action="Index" class="d-inline-block mb-4 small">&larr; Mes commandes</a>
 
-@if (TempData["Error"] is string error)
-{
-    <div class="alert alert-danger">@error</div>
-}
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger">@error</div>
+    }
 
-<p>Statut : @Model.Status</p>
-<p>Date : @Model.CreatedAtUtc.ToString("dd/MM/yyyy")</p>
+    <div class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-3">
+        <div>
+            <span class="section-label d-block mb-1">Commande</span>
+            <h1 class="h3 mb-2 text-break">@Model.Id</h1>
+            <span class="status-badge @OrderStatusPresentation.CssClass(Model.Status)">@OrderStatusPresentation.Label(Model.Status)</span>
+            <span class="text-muted ms-2">@Model.CreatedAtUtc.ToString("dd MMMM yyyy")</span>
+        </div>
+        <a asp-controller="Orders" asp-action="Invoice" asp-route-id="@Model.Id" class="btn btn-outline-primary">Télécharger la facture</a>
+    </div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Produit</th>
-            <th>Prix unitaire</th>
-            <th>Quantité</th>
-            <th>Sous-total</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model.Items)
-        {
-            <tr>
-                <td>@item.ProductName</td>
-                <td>@item.UnitPrice.ToString("C")</td>
-                <td>@item.Quantity</td>
-                <td>@item.Subtotal.ToString("C")</td>
-            </tr>
-        }
-    </tbody>
-</table>
+    <div class="table-responsive mb-4">
+        <table class="table table-clean align-middle">
+            <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th>Prix unitaire</th>
+                    <th>Quantité</th>
+                    <th>Sous-total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td class="fw-medium">@item.ProductName</td>
+                        <td>@item.UnitPrice.ToString("C")</td>
+                        <td>@item.Quantity</td>
+                        <td class="fw-semibold">@item.Subtotal.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 
-<p class="fs-4">Total : @Model.Total.ToString("C")</p>
-
-<a asp-controller="Orders" asp-action="Invoice" asp-route-id="@Model.Id" class="btn btn-outline-primary">Télécharger la facture</a>
+    <div class="d-flex justify-content-end">
+        <div class="form-card" style="max-width: 280px;">
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Total</span>
+                <span class="fs-5 fw-bold" style="font-family: var(--font-display);">@Model.Total.ToString("C")</span>
+            </div>
+        </div>
+    </div>
+</div>

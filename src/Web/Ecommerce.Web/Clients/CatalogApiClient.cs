@@ -87,10 +87,11 @@ public sealed class CatalogApiClient(HttpClient httpClient) : ICatalogApiClient
         decimal price,
         int stock,
         Guid categoryId,
+        string? imageUrl,
         CancellationToken cancellationToken)
     {
         using var request = CreateAuthenticatedRequest(HttpMethod.Post, "/api/catalog/products", accessToken);
-        request.Content = JsonContent.Create(new { name, price, stock, categoryId });
+        request.Content = JsonContent.Create(new { name, price, stock, categoryId, imageUrl });
         var response = await httpClient.SendAsync(request, cancellationToken);
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
@@ -108,10 +109,11 @@ public sealed class CatalogApiClient(HttpClient httpClient) : ICatalogApiClient
         decimal price,
         int stock,
         Guid categoryId,
+        string? imageUrl,
         CancellationToken cancellationToken)
     {
         using var request = CreateAuthenticatedRequest(HttpMethod.Put, $"/api/catalog/products/{id}", accessToken);
-        request.Content = JsonContent.Create(new { name, price, stock, categoryId });
+        request.Content = JsonContent.Create(new { name, price, stock, categoryId, imageUrl });
         var response = await httpClient.SendAsync(request, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {

@@ -5,3 +5,5 @@ namespace Ecommerce.Web.Models;
 public sealed record UserDto(Guid Id, string Email, string DisplayName, DateTime CreatedAtUtc);
 
 public sealed record AddressDto(Guid Id, string Line1, string? Line2, string City, string PostalCode, string Country, bool IsDefault);
+
+public sealed record UserAdminDto(Guid Id, string Email, string DisplayName, DateTime CreatedAtUtc, bool EmailConfirmed, IReadOnlyList<string> Roles);
